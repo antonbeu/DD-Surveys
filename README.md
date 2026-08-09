@@ -11,7 +11,7 @@ an alle Teilnehmenden einer Aktivität schicken (wie ein Verteiler).
 ## Tech-Stack
 
 - [Next.js](https://nextjs.org) (App Router, Server Actions)
-- [Prisma](https://www.prisma.io) + SQLite als Datenbank
+- [Prisma](https://www.prisma.io) + PostgreSQL als Datenbank
 - [Nodemailer](https://nodemailer.com) für den E-Mail-Versand
 - Tailwind CSS fürs Styling
 
@@ -23,9 +23,18 @@ an alle Teilnehmenden einer Aktivität schicken (wie ein Verteiler).
    npm install
    ```
 
-2. `.env` anpassen (Datei existiert bereits mit sinnvollen Defaults):
+2. Eine PostgreSQL-Datenbank bereitstellen (lokal z. B. per Docker):
 
    ```bash
+   docker run --name lars-db -e POSTGRES_USER=larsapp -e POSTGRES_PASSWORD=larsapp \
+     -e POSTGRES_DB=larsapp -p 5432:5432 -d postgres:16
+   ```
+
+3. `.env` anpassen (Datei existiert bereits mit sinnvollen Defaults):
+
+   ```bash
+   DATABASE_URL="postgresql://larsapp:larsapp@localhost:5432/larsapp"
+
    ADMIN_PASSWORD="dein-admin-passwort"
    ADMIN_SESSION_SECRET="ein-langer-zufälliger-string"
    MAIL_FROM="Lars Geburtstag <no-reply@example.com>"
@@ -42,14 +51,14 @@ an alle Teilnehmenden einer Aktivität schicken (wie ein Verteiler).
    Solange `SMTP_HOST` leer ist, werden E-Mails nicht wirklich verschickt,
    sondern nur in die Server-Konsole geloggt – praktisch zum Testen.
 
-3. Datenbank anlegen und mit Beispiel-Aktivitäten befüllen:
+4. Datenbank-Tabellen anlegen und mit Beispiel-Aktivitäten befüllen:
 
    ```bash
    npm run db:migrate
    npm run db:seed
    ```
 
-4. Entwicklungsserver starten:
+5. Entwicklungsserver starten:
 
    ```bash
    npm run dev
@@ -89,21 +98,47 @@ SMTP_PASS="dein-passwort"
 MAIL_FROM="Lars Geburtstag <deine-adresse@beispiel.de>"
 ```
 
-## Deployment
+## Deployment (ohne Terminal, über Railway)
 
-Diese App braucht neben dem Next.js-Server eine **dauerhaft beschreibbare**
-SQLite-Datei. Das funktioniert nicht auf rein serverlosen Plattformen mit
-read-only Dateisystem (z. B. Vercel im Standardbetrieb). Für den echten
-Einsatz eignet sich z. B.:
+Diese App braucht eine PostgreSQL-Datenbank und einen Node-Server, der
+dauerhaft läuft – kein reines Serverless-Hosting. Am einfachsten geht das
+komplett über den Browser mit [Railway](https://railway.app):
 
-- ein kleiner VPS oder Server mit `npm run build && npm run start`,
-- eine Plattform mit persistentem Volume (z. B. Railway, Render, Fly.io),
-- oder eine Umstellung von SQLite auf eine gehostete Postgres-Datenbank
-  (z. B. Neon oder Supabase) – dafür müsste `DATABASE_URL` und der
-  `provider` in `prisma/schema.prisma` angepasst werden.
+1. Auf [railway.app](https://railway.app) gehen und mit **"Login with
+   GitHub"** anmelden (kostenloser Account reicht zum Start).
+2. **"New Project"** → **"Deploy from GitHub repo"** → das Repository
+   `antonbeu/dd` auswählen. Falls Railway noch keinen Zugriff auf das Repo
+   hat, wird das im selben Schritt eingerichtet.
+3. Als Branch `claude/lars-birthday-event-signup-zalmw4` auswählen (oder
+   den Branch, auf den die Änderungen zuletzt gepusht wurden).
+4. Im selben Projekt über **"+ New"** → **"Database"** → **"Add
+   PostgreSQL"** eine Datenbank hinzufügen. Railway verbindet sie
+   automatisch mit der App und stellt die Variable `DATABASE_URL` bereit.
+5. Bei der App (nicht der Datenbank) unter **"Variables"** folgende
+   Umgebungsvariablen eintragen:
 
-Setze in der Produktionsumgebung unbedingt eigene, geheime Werte für
-`ADMIN_PASSWORD` und `ADMIN_SESSION_SECRET`.
+   | Variable | Wert |
+   | --- | --- |
+   | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (Railway schlägt das automatisch vor) |
+   | `ADMIN_PASSWORD` | ein selbst gewähltes, geheimes Passwort für `/admin` |
+   | `ADMIN_SESSION_SECRET` | eine lange zufällige Zeichenkette (z. B. über einen Passwort-Generator erzeugen) |
+   | `MAIL_FROM` | z. B. `Lars Geburtstag <deine-adresse@beispiel.de>` |
+   | `EVENT_NAME` | `Lars' 60. Geburtstag` |
+   | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS` | Zugangsdaten deines Mail-Anbieters (siehe oben) – ohne diese werden Mails nur geloggt, nicht wirklich verschickt |
+
+6. Railway baut die App automatisch (dabei werden auch die
+   Datenbank-Tabellen automatisch angelegt) und zeigt danach unter
+   **"Settings" → "Networking" → "Generate Domain"** eine öffentliche
+   URL wie `https://dein-projekt.up.railway.app` an – das ist der Link,
+   den du an deine Gäste schickst.
+7. Die Datenbank startet leer (die Beispiel-Aktivitäten aus der lokalen
+   Entwicklung werden nicht automatisch übernommen). Im Admin-Bereich
+   (`https://.../admin`, Login mit `ADMIN_PASSWORD`) einfach die echten
+   Aktivitäten anlegen.
+
+Setze unbedingt eigene, geheime Werte für `ADMIN_PASSWORD` und
+`ADMIN_SESSION_SECRET` – nicht die Platzhalter aus `.env.example`
+verwenden.
 
 ## Datenbank-Kommandos
 
