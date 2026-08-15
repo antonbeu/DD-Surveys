@@ -5,6 +5,7 @@ import { formatDate, formatTime } from "@/lib/activities";
 import { updateActivityAction } from "../../actions";
 import { ActivityForm } from "../../ActivityForm";
 import { DeleteActivityButton } from "./DeleteActivityButton";
+import { DeleteParticipantButton } from "./DeleteParticipantButton";
 import { CopyEmailsButton } from "./CopyEmailsButton";
 import { BroadcastForm } from "./BroadcastForm";
 
@@ -93,7 +94,8 @@ export default async function AdminActivityPage({
                     <tr className="border-b border-zinc-200 text-zinc-500 dark:border-zinc-800 dark:text-zinc-400">
                       <th className="py-2 pr-4 font-medium">Name</th>
                       <th className="py-2 pr-4 font-medium">E-Mail</th>
-                      <th className="py-2 font-medium">Angemeldet</th>
+                      <th className="py-2 pr-4 font-medium">Angemeldet</th>
+                      <th className="py-2 font-medium"></th>
                     </tr>
                   </thead>
                   <tbody>
@@ -108,9 +110,16 @@ export default async function AdminActivityPage({
                         <td className="py-2 pr-4 text-zinc-600 dark:text-zinc-400">
                           {participant.email}
                         </td>
-                        <td className="py-2 text-zinc-500 dark:text-zinc-500">
+                        <td className="py-2 pr-4 text-zinc-500 dark:text-zinc-500">
                           {formatDate(participant.createdAt)}{" "}
                           {formatTime(participant.createdAt)}
+                        </td>
+                        <td className="py-2 text-right">
+                          <DeleteParticipantButton
+                            activityId={activity.id}
+                            participantId={participant.id}
+                            participantName={participant.name}
+                          />
                         </td>
                       </tr>
                     ))}

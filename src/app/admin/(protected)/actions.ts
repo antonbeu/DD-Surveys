@@ -118,6 +118,20 @@ export async function deleteActivityAction(activityId: string) {
   redirect("/admin");
 }
 
+export async function deleteParticipantAction(
+  activityId: string,
+  participantId: string
+) {
+  await requireAdmin();
+
+  await prisma.participant.delete({ where: { id: participantId } });
+
+  revalidatePath("/");
+  revalidatePath(`/aktivitaet/${activityId}`);
+  revalidatePath("/admin");
+  revalidatePath(`/admin/activities/${activityId}`);
+}
+
 export type BroadcastState = {
   status: "idle" | "success" | "error";
   message?: string;
