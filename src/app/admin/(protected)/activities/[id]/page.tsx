@@ -56,6 +56,7 @@ export default async function AdminActivityPage({
               location: activity.location,
               startsAt: activity.startsAt,
               endsAt: activity.endsAt,
+              dateTbd: activity.dateTbd,
               capacity: activity.capacity,
               order: activity.order,
             }}

@@ -12,13 +12,22 @@ model Activity {
   title        String
   description  String
   location     String
-  startsAt     DateTime
+  startsAt     DateTime?
   endsAt       DateTime?
+  dateTbd      Boolean       @default(false)
   capacity     Int
   order        Int           @default(0)
   participants Participant[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+model SiteSettings {
+  id          String   @id @default("main")
+  heroEyebrow String   @default("Herzliche Einladung")
+  heroTitle   String   @default("Lars wird 60! 🎉")
+  heroText    String   @default("Ich freue mich riesig, meinen 60. Geburtstag mit euch zu feiern. Damit an allen Tagen alles gut organisiert ist, könnt ihr euch unten für die einzelnen Aktivitäten anmelden. Die Plätze sind begrenzt – meldet euch also am besten gleich an!")
+  updatedAt   DateTime @updatedAt
 }
 
 model Participant {

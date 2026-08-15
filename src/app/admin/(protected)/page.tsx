@@ -42,7 +42,11 @@ export default async function AdminDashboardPage() {
                       {activity.title}
                     </p>
                     <p className="text-sm text-zinc-500 dark:text-zinc-400">
-                      {formatDateTimeRange(activity.startsAt, activity.endsAt)}{" "}
+                      {formatDateTimeRange(
+                        activity.startsAt,
+                        activity.endsAt,
+                        activity.dateTbd
+                      )}{" "}
                       · {activity.location}
                     </p>
                   </div>

@@ -148,12 +148,15 @@ export async function sendSignupConfirmation(
   participant: Participant,
   activity: Activity
 ) {
-  const zeitraum = activity.endsAt
-    ? `${formatDateTime(activity.startsAt)} bis ${new Intl.DateTimeFormat(
-        "de-DE",
-        { hour: "2-digit", minute: "2-digit" }
-      ).format(activity.endsAt)} Uhr`
-    : `${formatDateTime(activity.startsAt)} Uhr`;
+  const zeitraum =
+    activity.dateTbd || !activity.startsAt
+      ? "Termin wird noch bekannt gegeben"
+      : activity.endsAt
+        ? `${formatDateTime(activity.startsAt)} bis ${new Intl.DateTimeFormat(
+            "de-DE",
+            { hour: "2-digit", minute: "2-digit" }
+          ).format(activity.endsAt)} Uhr`
+        : `${formatDateTime(activity.startsAt)} Uhr`;
 
   const subject = `Anmeldebestätigung: ${activity.title} – ${EVENT_NAME}`;
 

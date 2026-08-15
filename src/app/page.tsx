@@ -1,26 +1,30 @@
 import Link from "next/link";
-import { getActivitiesForPublic, formatDateTimeRange } from "@/lib/activities";
+import {
+  getActivitiesForPublic,
+  formatDateTimeRange,
+  getSiteSettings,
+} from "@/lib/activities";
 
 export const dynamic = "force-dynamic";
 
 export default async function Home() {
-  const activities = await getActivitiesForPublic();
+  const [activities, settings] = await Promise.all([
+    getActivitiesForPublic(),
+    getSiteSettings(),
+  ]);
 
   return (
     <div className="min-h-full bg-gradient-to-b from-violet-50 via-white to-white dark:from-violet-950 dark:via-black dark:to-black">
       <header className="bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white">
         <div className="mx-auto max-w-3xl px-6 py-16 text-center sm:py-20">
           <p className="text-sm font-semibold uppercase tracking-widest text-violet-100">
-            Herzliche Einladung
+            {settings.heroEyebrow}
           </p>
           <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
-            Lars wird 60! 🎉
+            {settings.heroTitle}
           </h1>
-          <p className="mt-5 text-lg text-violet-50">
-            Ich freue mich riesig, meinen 60. Geburtstag mit euch zu feiern.
-            Damit an allen Tagen alles gut organisiert ist, könnt ihr euch
-            unten für die einzelnen Aktivitäten anmelden. Die Plätze sind
-            begrenzt – meldet euch also am besten gleich an!
+          <p className="mt-5 whitespace-pre-wrap text-lg text-violet-50">
+            {settings.heroText}
           </p>
         </div>
       </header>
@@ -63,7 +67,8 @@ export default async function Home() {
                         🗓️{" "}
                         {formatDateTimeRange(
                           activity.startsAt,
-                          activity.endsAt
+                          activity.endsAt,
+                          activity.dateTbd
                         )}
                       </p>
                     </div>

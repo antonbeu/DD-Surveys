@@ -26,25 +26,35 @@ function parseActivityForm(formData: FormData) {
   const title = String(formData.get("title") ?? "").trim();
   const description = String(formData.get("description") ?? "").trim();
   const location = String(formData.get("location") ?? "").trim();
+  const dateTbd = formData.get("dateTbd") === "on";
   const startsAtRaw = String(formData.get("startsAt") ?? "");
   const endsAtRaw = String(formData.get("endsAt") ?? "");
   const capacityRaw = String(formData.get("capacity") ?? "");
   const orderRaw = String(formData.get("order") ?? "0");
 
-  if (!title || !description || !location || !startsAtRaw) {
+  if (!title || !description || !location) {
     throw new Error("Bitte fülle alle Pflichtfelder aus.");
   }
-
-  const startsAt = new Date(startsAtRaw);
-  if (Number.isNaN(startsAt.getTime())) {
-    throw new Error("Ungültiges Startdatum.");
+  if (!dateTbd && !startsAtRaw) {
+    throw new Error(
+      "Bitte einen Beginn angeben oder \"Termin steht noch nicht fest\" auswählen."
+    );
   }
 
+  let startsAt: Date | null = null;
   let endsAt: Date | null = null;
-  if (endsAtRaw) {
-    endsAt = new Date(endsAtRaw);
-    if (Number.isNaN(endsAt.getTime())) {
-      throw new Error("Ungültiges Enddatum.");
+
+  if (!dateTbd) {
+    startsAt = new Date(startsAtRaw);
+    if (Number.isNaN(startsAt.getTime())) {
+      throw new Error("Ungültiges Startdatum.");
+    }
+
+    if (endsAtRaw) {
+      endsAt = new Date(endsAtRaw);
+      if (Number.isNaN(endsAt.getTime())) {
+        throw new Error("Ungültiges Enddatum.");
+      }
     }
   }
 
@@ -55,7 +65,16 @@ function parseActivityForm(formData: FormData) {
 
   const order = Number.isInteger(Number(orderRaw)) ? Number(orderRaw) : 0;
 
-  return { title, description, location, startsAt, endsAt, capacity, order };
+  return {
+    title,
+    description,
+    location,
+    dateTbd,
+    startsAt,
+    endsAt,
+    capacity,
+    order,
+  };
 }
 
 export async function createActivityAction(
@@ -130,6 +149,37 @@ export async function deleteParticipantAction(
   revalidatePath(`/aktivitaet/${activityId}`);
   revalidatePath("/admin");
   revalidatePath(`/admin/activities/${activityId}`);
+}
+
+export type SettingsFormState = {
+  status: "idle" | "error";
+  message?: string;
+};
+
+export async function updateSiteSettingsAction(
+  _prevState: SettingsFormState,
+  formData: FormData
+): Promise<SettingsFormState> {
+  await requireAdmin();
+
+  const heroEyebrow = String(formData.get("heroEyebrow") ?? "").trim();
+  const heroTitle = String(formData.get("heroTitle") ?? "").trim();
+  const heroText = String(formData.get("heroText") ?? "").trim();
+
+  if (!heroEyebrow || !heroTitle || !heroText) {
+    return { status: "error", message: "Bitte fülle alle Felder aus." };
+  }
+
+  await prisma.siteSettings.upsert({
+    where: { id: "main" },
+    update: { heroEyebrow, heroTitle, heroText },
+    create: { id: "main", heroEyebrow, heroTitle, heroText },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/admin/einstellungen");
+
+  return { status: "idle", message: "Änderungen gespeichert." };
 }
 
 export type BroadcastState = {

@@ -46,7 +46,13 @@ export default async function ActivityPage({
               <dt className="font-medium text-zinc-900 dark:text-zinc-200">
                 🗓️ Zeit:
               </dt>
-              <dd>{formatDateTimeRange(activity.startsAt, activity.endsAt)}</dd>
+              <dd>
+                {formatDateTimeRange(
+                  activity.startsAt,
+                  activity.endsAt,
+                  activity.dateTbd
+                )}
+              </dd>
             </div>
             <div className="flex gap-2">
               <dt className="font-medium text-zinc-900 dark:text-zinc-200">

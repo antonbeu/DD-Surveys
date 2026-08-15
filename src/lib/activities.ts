@@ -46,10 +46,25 @@ export function formatTime(date: Date): string {
   }).format(date);
 }
 
-export function formatDateTimeRange(start: Date, end: Date | null): string {
+export function formatDateTimeRange(
+  start: Date | null,
+  end: Date | null,
+  dateTbd: boolean = false
+): string {
+  if (dateTbd || !start) {
+    return "Termin wird noch bekannt gegeben";
+  }
   const datePart = formatDate(start);
   if (!end) {
     return `${datePart}, ${formatTime(start)} Uhr`;
   }
   return `${datePart}, ${formatTime(start)} – ${formatTime(end)} Uhr`;
+}
+
+export async function getSiteSettings() {
+  return prisma.siteSettings.upsert({
+    where: { id: "main" },
+    update: {},
+    create: { id: "main" },
+  });
 }

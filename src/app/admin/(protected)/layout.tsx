@@ -24,6 +24,12 @@ export default async function AdminProtectedLayout({
           </Link>
           <div className="flex items-center gap-4 text-sm">
             <Link
+              href="/admin/einstellungen"
+              className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+            >
+              Einstellungen
+            </Link>
+            <Link
               href="/"
               className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
             >
