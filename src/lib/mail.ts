@@ -237,21 +237,19 @@ export async function sendBroadcast(
     </div>
   `;
 
-  const mailFrom =
-    process.env.MAIL_FROM ?? "lars.beulke@me.com";
+  for (const email of participantEmails) {
+    const emailSent = await send({
+      to: email,
+      subject: fullSubject,
+      text: body,
+      html,
+    });
 
-  const emailSent = await send({
-    to: extractEmail(mailFrom),
-    bcc: participantEmails,
-    subject: fullSubject,
-    text: body,
-    html,
-  });
-
-  if (!emailSent) {
-    throw new Error(
-      "Die E-Mail konnte nicht über Mailjet versendet werden."
-    );
+    if (!emailSent) {
+      throw new Error(
+        `Die E-Mail an ${email} konnte nicht über Mailjet versendet werden.`
+      );
+    }
   }
 }
 
