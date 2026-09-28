@@ -77,94 +77,92 @@
       "collector_id": 2132664,
       "collector_name": "When giant insects ruled",
       "score": 1.0
-    }
-  ],
-  "unclear": [
-    {
-      "course": "Geheimschrift-Detektiv",
-      "best_match": "Zeitdetektive",
-      "score": 0.6285714285714286
-    },
-    {
-      "course": "Philo Club",
-      "best_match": "Buchclub",
-      "score": 0.5555555555555556
-    },
-    {
-      "course": "Lernen zu Lernen!",
-      "best_match": "Pflanzen im All",
-      "score": 0.4375
-    },
-    {
-      "course": "Die Belohnungsdetektive",
-      "best_match": "Die Belohnungsdetektive: Clever handeln",
-      "score": 0.7419354838709677
-    },
-    {
-      "course": "Feldforschung Klimawandel",
-      "best_match": "Die Belohnungsdetektive: Clever handeln",
-      "score": 0.4375
-    },
-    {
-      "course": "Code-Abenteuer: Mission Programmieren",
-      "best_match": "ScientificErrorsJurassicPark",
-      "score": 0.3384615384615385
     },
     {
       "course": "Scientific errors in Jurassic World",
-      "best_match": "ScientificErrorsJurassicPark",
-      "score": 0.7936507936507936
+      "collector_id": 1667150,
+      "collector_name": "Scientific errors in Jurassic World",
+      "score": 1.0
     },
     {
-      "course": "Musik zum Programmieren",
-      "best_match": "Mathematik der Maya",
-      "score": 0.2857142857142857
+      "course": "Die Belohnungsdetektive",
+      "collector_id": 2062218,
+      "collector_name": "Die Belohnungsdetektive",
+      "score": 1.0
     },
     {
-      "course": "Ozeanströmungen – Motor unseres Klimas",
-      "best_match": "Einführung in die Klassische Archäologie",
-      "score": 0.358974358974359
-    },
-    {
-      "course": "Unter meinem Hut",
-      "best_match": "Strom & Licht",
-      "score": 0.41379310344827586
-    },
-    {
-      "course": "Erfinde dein Spiel",
-      "best_match": "Zeitdetektive",
-      "score": 0.45161290322580644
-    },
-    {
-      "course": "Buchclub - Spaß am Lesen",
-      "best_match": "Buchclub",
-      "score": 0.5
-    },
-    {
-      "course": "Baue deine eigene Alarmanlage",
-      "best_match": "Alarmanlage bauen",
-      "score": 0.4782608695652174
+      "course": "Geheimschrift-Detektiv",
+      "collector_id": 2133528,
+      "collector_name": "Geheimschrift-Detektiv",
+      "score": 1.0
     },
     {
       "course": "Sound Secrets: Physik & Musik",
-      "best_match": "SoundSecrets",
-      "score": 0.5853658536585366
+      "collector_id": 2028809,
+      "collector_name": "Sound Secrets: Physik & Musik",
+      "score": 1.0
+    },
+    {
+      "course": "Baue deine eigene Alarmanlage",
+      "collector_id": 2091192,
+      "collector_name": "Baue deine eigene Alarmanlage",
+      "score": 1.0
+    },
+    {
+      "course": "Buchclub - Spaß am Lesen",
+      "collector_id": 1642123,
+      "collector_name": "Buchclub - Spaß am Lesen",
+      "score": 1.0
+    },
+    {
+      "course": "Lernen zu Lernen!",
+      "collector_id": 2089422,
+      "collector_name": "Lernen zu Lernen!",
+      "score": 1.0
+    },
+    {
+      "course": "Musik zum Programmieren",
+      "collector_id": 2043486,
+      "collector_name": "Musik zum Programmieren",
+      "score": 1.0
+    },
+    {
+      "course": "Ozeanströmungen – Motor unseres Klimas",
+      "collector_id": 1815156,
+      "collector_name": "Ozeanströmungen – Motor unseres Klimas",
+      "score": 1.0
+    },
+    {
+      "course": "Unter meinem Hut",
+      "collector_id": 1966708,
+      "collector_name": "Unter meinem Hut",
+      "score": 1.0
+    },
+    {
+      "course": "Erfinde dein Spiel",
+      "collector_id": 1642290,
+      "collector_name": "Erfinde dein Spiel",
+      "score": 1.0
     },
     {
       "course": "⚔️ Abenteuer Mittelalter",
-      "best_match": "Fantasielabor",
-      "score": 0.43243243243243246
+      "collector_id": 2143337,
+      "collector_name": "⚔️ Abenteuer Mittelalter",
+      "score": 1.0
     },
     {
       "course": "Karel the Robot",
-      "best_match": "Arabische Mathematik",
-      "score": 0.45714285714285713
+      "collector_id": 1852076,
+      "collector_name": "Karel the Robot",
+      "score": 1.0
     },
     {
       "course": "Yogareise durch unser Sonnensystem",
-      "best_match": "Ich höre was, was du nicht hörst?",
-      "score": 0.3582089552238806
+      "collector_id": 1946071,
+      "collector_name": "Yogareise durch unser Sonnensystem",
+      "score": 1.0
     }
   ],
-  "total_courses": 30
+  "unclear": [],
+  "total_courses": 27
 }
