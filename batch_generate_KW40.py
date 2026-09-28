@@ -3,12 +3,16 @@ import json
 import os
 import requests
 from base64 import b64encode
-from collections import defaultdict
+from collections import defaultdict, Counter
+from io import BytesIO
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
-from matplotlib.backends.backend_pdf import PdfPages
-import io
+from reportlab.lib.pagesizes import A4
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch, cm
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
+from reportlab.lib import colors
 
 # API Credentials
 API_USER = "505973-1597"
@@ -147,36 +151,46 @@ def aggregate_by_question(responses):
 
     return questions
 
-def draw_chart(data, data_type):
-    """Create matplotlib chart"""
-    if data_type == 'ratings' and data:
-        from collections import Counter
-        counts = Counter(int(r) for r in data if isinstance(r, (int, float)))
-        labels = sorted(counts.keys())
-        values = [counts[l] for l in labels]
+def draw_bar_chart(ratings):
+    """Create bar chart for ratings"""
+    if not ratings:
+        return None
 
-        fig, ax = plt.subplots(figsize=(8, 2.5))
-        bars = ax.bar(labels, values, color='#1f77b4', edgecolor='navy', alpha=0.7, width=0.6)
+    counts = Counter(int(r) for r in ratings if isinstance(r, (int, float)))
+    if not counts:
+        return None
 
-        ax.set_xlabel('Rating')
-        ax.set_ylabel('Count')
-        ax.set_xticks(labels)
-        ax.grid(axis='y', alpha=0.3)
-        ax.set_ylim(0, max(values) * 1.15)
+    labels = sorted(counts.keys())
+    values = [counts[l] for l in labels]
 
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(bar.get_x() + bar.get_width()/2., height,
-                    f'{int(height)}',
-                    ha='center', va='bottom', fontsize=10)
+    fig, ax = plt.subplots(figsize=(7, 1.8), dpi=100)
+    bars = ax.bar(labels, values, color='#2E86AB', edgecolor='#1F4D7B', alpha=0.8, width=0.6)
 
-        plt.tight_layout()
-        return fig
+    ax.set_xlabel('Rating', fontsize=9)
+    ax.set_ylabel('Count', fontsize=9)
+    ax.set_xticks(labels)
+    ax.set_xticklabels(labels)
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
+    ax.set_ylim(0, max(values) * 1.2)
 
-    return None
+    # Add value labels on bars
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(bar.get_x() + bar.get_width()/2., height,
+                f'{int(height)}',
+                ha='center', va='bottom', fontsize=9, fontweight='bold')
+
+    plt.tight_layout()
+
+    # Save to bytes
+    buf = BytesIO()
+    fig.savefig(buf, format='png', dpi=100, bbox_inches='tight', facecolor='white')
+    buf.seek(0)
+    plt.close(fig)
+    return buf
 
 def create_pdf(course_name, leader_name, collector_id, responses):
-    """Create PDF with all responses"""
+    """Create PDF report"""
     os.makedirs('output/KW40-2026', exist_ok=True)
 
     leader_slug_name = leader_slug(leader_name)
@@ -185,94 +199,102 @@ def create_pdf(course_name, leader_name, collector_id, responses):
 
     print(f"  Creating: {pdf_filename}")
 
+    doc = SimpleDocTemplate(
+        pdf_filename,
+        pagesize=A4,
+        rightMargin=1.5*cm,
+        leftMargin=1.5*cm,
+        topMargin=1.5*cm,
+        bottomMargin=1.5*cm
+    )
+
+    styles = getSampleStyleSheet()
+    story = []
+
+    # Title style
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        textColor=colors.HexColor('#1F4D7B'),
+        spaceAfter=6,
+        fontName='Helvetica-Bold'
+    )
+
+    # Question style
+    q_style = ParagraphStyle(
+        'Question',
+        parent=styles['Normal'],
+        fontSize=11,
+        textColor=colors.HexColor('#1F4D7B'),
+        spaceAfter=8,
+        fontName='Helvetica-Bold'
+    )
+
+    # Text response style
+    text_style = ParagraphStyle(
+        'TextResp',
+        parent=styles['Normal'],
+        fontSize=9,
+        textColor=colors.HexColor('#333333'),
+        spaceAfter=4,
+        leftIndent=15
+    )
+
+    # Header
+    story.append(Paragraph(f"<b>{course_name}</b>", title_style))
+    story.append(Spacer(1, 0.2*cm))
+
+    meta_text = f"<font size=9>KW40 (21. - 25. September 2026) | Antworten: {len(responses)}</font>"
+    story.append(Paragraph(meta_text, styles['Normal']))
+    story.append(Spacer(1, 0.4*cm))
+
+    # Get aggregated questions
     questions = aggregate_by_question(responses)
 
+    # Process each question
+    for element_id in sorted(questions.keys()):
+        q = questions[element_id]
+        q_text = q['text']
+
+        # Question title
+        story.append(Paragraph(q_text, q_style))
+
+        # Add chart for ratings
+        if q['ratings']:
+            avg = sum(q['ratings']) / len(q['ratings'])
+            story.append(Paragraph(f"<font size=8><i>Durchschnitt: {avg:.1f}/5</i></font>", styles['Normal']))
+            story.append(Spacer(1, 0.2*cm))
+
+            chart_buf = draw_bar_chart(q['ratings'])
+            if chart_buf:
+                img = Image(chart_buf, width=6*cm, height=1.8*cm)
+                story.append(img)
+                story.append(Spacer(1, 0.3*cm))
+
+        # Add text responses
+        if q['texts']:
+            # Filter out choice labels if we also have text responses
+            text_responses = []
+            for text in q['texts']:
+                if q['type'] == 'text' or (q['type'] == 'choices' and text not in q['choices']):
+                    text_responses.append(text)
+
+            if not text_responses and q['type'] == 'choices':
+                text_responses = list(q['texts'][:5])
+
+            if text_responses:
+                for i, text in enumerate(text_responses[:5]):
+                    text_short = text[:150]
+                    if len(text) > 150:
+                        text_short += "..."
+                    story.append(Paragraph(f"• {text_short}", text_style))
+
+                story.append(Spacer(1, 0.4*cm))
+
+    # Build PDF
     try:
-        with PdfPages(pdf_filename) as pdf:
-            # Page 1: Title
-            fig = plt.figure(figsize=(8.27, 11.69))
-            fig.suptitle(f"{course_name} - KW40", fontsize=18, fontweight='bold', y=0.95)
-
-            ax = fig.add_subplot(111)
-            ax.axis('off')
-
-            info_text = f"Zeitraum: 21. - 25. September 2026\nAntworten: {len(responses)}"
-            ax.text(0.5, 0.85, info_text, ha='center', va='top', fontsize=12,
-                   transform=ax.transAxes)
-
-            pdf.savefig(fig, bbox_inches='tight')
-            plt.close(fig)
-
-            # Pages for each question
-            y_pos = 0
-            current_fig = None
-            current_ax = None
-
-            for element_id in sorted(questions.keys()):
-                q = questions[element_id]
-                q_text = q['text']
-
-                # Create new page if needed
-                if y_pos >= 0.85 or current_fig is None:
-                    if current_fig is not None:
-                        pdf.savefig(current_fig, bbox_inches='tight')
-                        plt.close(current_fig)
-                    current_fig, current_ax = plt.subplots(figsize=(8.27, 11.69))
-                    current_ax.axis('off')
-                    y_pos = 0.95
-
-                # Add question title
-                current_ax.text(0.1, y_pos, q_text, fontsize=11, fontweight='bold',
-                               transform=current_ax.transAxes, wrap=True)
-                y_pos -= 0.04
-
-                # Add chart or data
-                if q['ratings']:
-                    # Add ratings chart
-                    from collections import Counter
-                    counts = Counter(int(r) for r in q['ratings'] if isinstance(r, (int, float)))
-                    labels = sorted(counts.keys())
-                    values = [counts[l] for l in labels]
-
-                    # Create small inline chart
-                    avg = sum(q['ratings']) / len(q['ratings'])
-                    current_ax.text(0.1, y_pos, f"Average: {avg:.1f}/5", fontsize=10,
-                                   transform=current_ax.transAxes)
-                    y_pos -= 0.03
-
-                    # Bar data as text
-                    for label, count in zip(labels, values):
-                        pct = (count / len(q['ratings'])) * 100
-                        bar_width = pct / 100 * 0.4
-                        current_ax.text(0.1, y_pos, f"{label}: {count} ({pct:.0f}%)",
-                                       fontsize=9, transform=current_ax.transAxes)
-                        y_pos -= 0.025
-
-                elif q['choices']:
-                    # Show choice counts
-                    for choice_text, count in sorted(q['choices'].items(), key=lambda x: x[1], reverse=True):
-                        current_ax.text(0.1, y_pos, f"• {choice_text}: {count}",
-                                       fontsize=9, transform=current_ax.transAxes)
-                        y_pos -= 0.025
-
-                # Add text responses
-                if q['texts'] and q['type'] == 'text':
-                    current_ax.text(0.1, y_pos, "Text responses:", fontsize=9,
-                                   fontweight='bold', transform=current_ax.transAxes)
-                    y_pos -= 0.025
-
-                    for text in q['texts'][:3]:
-                        text_short = text[:80] + ("..." if len(text) > 80 else "")
-                        current_ax.text(0.15, y_pos, f"• {text_short}", fontsize=8,
-                                       transform=current_ax.transAxes)
-                        y_pos -= 0.025
-
-                y_pos -= 0.02
-
-            if current_fig is not None:
-                pdf.savefig(current_fig, bbox_inches='tight')
-                plt.close(current_fig)
-
+        doc.build(story)
         return True
     except Exception as e:
         print(f"  Error: {e}")
