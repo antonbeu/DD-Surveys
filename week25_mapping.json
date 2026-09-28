@@ -2,167 +2,117 @@
   "confirmed": [
     {
       "course": "Bilder-Sodoku",
-      "collector_id": 2053176,
-      "collector_name": "Bilder-Sudoku",
-      "score": 0.9230769230769231
-    },
-    {
-      "course": "Fantasielabor",
-      "collector_id": 2132650,
-      "collector_name": "Fantasielabor",
-      "score": 1.0
-    },
-    {
-      "course": "Mathematik der Maya",
-      "collector_id": 1928660,
-      "collector_name": "Mathematik der Maya",
-      "score": 1.0
-    },
-    {
-      "course": "Zeitdetektive",
-      "collector_id": 2133528,
-      "collector_name": "Zeitdetektive",
-      "score": 1.0
-    },
-    {
-      "course": "Einführung in die Klassische Archäologie",
-      "collector_id": 2143328,
-      "collector_name": "Einführung in die Klassische Archäologie",
-      "score": 1.0
-    },
-    {
-      "course": "Arabische Mathematik",
-      "collector_id": 2134692,
-      "collector_name": "Arabische Mathematik",
-      "score": 1.0
-    },
-    {
-      "course": "Strom und Licht",
-      "collector_id": 2020115,
-      "collector_name": "Strom & Licht",
-      "score": 0.8571428571428571
-    },
-    {
-      "course": "Ich höre was, was du nicht hörst",
-      "collector_id": 1749813,
-      "collector_name": "Ich höre was, was du nicht hörst?",
-      "score": 0.9846153846153847
-    },
-    {
-      "course": "Pflanzen im All 🌱🚀",
-      "collector_id": 1746146,
-      "collector_name": "Pflanzen im All",
-      "score": 0.9090909090909091
-    },
-    {
-      "course": "Did dinosaurs get sick?",
-      "collector_id": 2130121,
-      "collector_name": "Did Dinosaurs get sick",
-      "score": 0.9777777777777777
-    },
-    {
-      "course": "Pferdequiz",
-      "collector_id": 1892166,
-      "collector_name": "Pferdequiz",
-      "score": 1.0
-    },
-    {
-      "course": "How to - Katzen streicheln",
-      "collector_id": 1961711,
-      "collector_name": "How to - Katzen streicheln",
-      "score": 1.0
-    },
-    {
-      "course": "When giant insects ruled",
-      "collector_id": 2132664,
-      "collector_name": "When giant insects ruled",
-      "score": 1.0
-    },
-    {
-      "course": "Scientific errors in Jurassic World",
-      "collector_id": 1667150,
-      "collector_name": "Scientific errors in Jurassic World",
-      "score": 1.0
-    },
-    {
-      "course": "Die Belohnungsdetektive",
-      "collector_id": 2062218,
-      "collector_name": "Die Belohnungsdetektive",
-      "score": 1.0
+      "collector_id": 2053176
     },
     {
       "course": "Geheimschrift-Detektiv",
-      "collector_id": 2133528,
-      "collector_name": "Geheimschrift-Detektiv",
-      "score": 1.0
+      "collector_id": 2133528
     },
     {
-      "course": "Sound Secrets: Physik & Musik",
-      "collector_id": 2028809,
-      "collector_name": "Sound Secrets: Physik & Musik",
-      "score": 1.0
-    },
-    {
-      "course": "Baue deine eigene Alarmanlage",
-      "collector_id": 2091192,
-      "collector_name": "Baue deine eigene Alarmanlage",
-      "score": 1.0
-    },
-    {
-      "course": "Buchclub - Spaß am Lesen",
-      "collector_id": 1642123,
-      "collector_name": "Buchclub - Spaß am Lesen",
-      "score": 1.0
+      "course": "Philo Club",
+      "collector_id": 1699147
     },
     {
       "course": "Lernen zu Lernen!",
-      "collector_id": 2089422,
-      "collector_name": "Lernen zu Lernen!",
-      "score": 1.0
+      "collector_id": 2089422
+    },
+    {
+      "course": "Fantasielabor",
+      "collector_id": 2132650
+    },
+    {
+      "course": "Mathematik der Maya",
+      "collector_id": 1928660
+    },
+    {
+      "course": "Die Belohnungsdetektive",
+      "collector_id": 2062218
+    },
+    {
+      "course": "Zeitdetektive",
+      "collector_id": 2133528
+    },
+    {
+      "course": "Einführung in die Klassische Archäologie",
+      "collector_id": 2143328
+    },
+    {
+      "course": "Scientific errors in Jurassic World",
+      "collector_id": 1667150
     },
     {
       "course": "Musik zum Programmieren",
-      "collector_id": 2043486,
-      "collector_name": "Musik zum Programmieren",
-      "score": 1.0
+      "collector_id": 2043486
+    },
+    {
+      "course": "Arabische Mathematik",
+      "collector_id": 2134692
+    },
+    {
+      "course": "Strom und Licht",
+      "collector_id": 2020115
     },
     {
       "course": "Ozeanströmungen – Motor unseres Klimas",
-      "collector_id": 1815156,
-      "collector_name": "Ozeanströmungen – Motor unseres Klimas",
-      "score": 1.0
+      "collector_id": 1815156
     },
     {
       "course": "Unter meinem Hut",
-      "collector_id": 1966708,
-      "collector_name": "Unter meinem Hut",
-      "score": 1.0
+      "collector_id": 1966708
+    },
+    {
+      "course": "Ich höre was, was du nicht hörst",
+      "collector_id": 1749813
+    },
+    {
+      "course": "Pflanzen im All 🌱🚀",
+      "collector_id": 1746146
     },
     {
       "course": "Erfinde dein Spiel",
-      "collector_id": 1642290,
-      "collector_name": "Erfinde dein Spiel",
-      "score": 1.0
+      "collector_id": 1642290
+    },
+    {
+      "course": "Did dinosaurs get sick?",
+      "collector_id": 2130121
+    },
+    {
+      "course": "Pferdequiz",
+      "collector_id": 1892166
+    },
+    {
+      "course": "Buchclub - Spaß am Lesen",
+      "collector_id": 1642123
+    },
+    {
+      "course": "Baue deine eigene Alarmanlage",
+      "collector_id": 2091192
+    },
+    {
+      "course": "Sound Secrets: Physik & Musik",
+      "collector_id": 2028809
     },
     {
       "course": "⚔️ Abenteuer Mittelalter",
-      "collector_id": 2143337,
-      "collector_name": "⚔️ Abenteuer Mittelalter",
-      "score": 1.0
+      "collector_id": 2143337
     },
     {
       "course": "Karel the Robot",
-      "collector_id": 1852076,
-      "collector_name": "Karel the Robot",
-      "score": 1.0
+      "collector_id": 1852076
+    },
+    {
+      "course": "How to - Katzen streicheln",
+      "collector_id": 1961711
     },
     {
       "course": "Yogareise durch unser Sonnensystem",
-      "collector_id": 1946071,
-      "collector_name": "Yogareise durch unser Sonnensystem",
-      "score": 1.0
+      "collector_id": 1946071
+    },
+    {
+      "course": "When giant insects ruled",
+      "collector_id": 2132664
     }
   ],
   "unclear": [],
-  "total_courses": 27
+  "total_courses": 28
 }
