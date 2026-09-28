@@ -195,7 +195,7 @@ def create_pdf(course_name, collector_id, responses):
         return False
 
 # Load mapping
-with open('week25_mapping.json', 'r') as f:
+with open('KW40_mapping.json', 'r') as f:
     mapping = json.load(f)
 
 print(f"Generating PDFs for {len(mapping['confirmed'])} courses...\n")
