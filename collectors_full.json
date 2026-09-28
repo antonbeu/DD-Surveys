@@ -1,1 +1,200 @@
-[]
+[
+  {
+    "collector_id": 1642123,
+    "name": "Buchclub",
+    "created_on": "2025-01-15T11:22:58+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Buchclub"
+    },
+    "number_of_responses": 100
+  },
+  {
+    "collector_id": 1667150,
+    "name": "ScientificErrorsJurassicPark",
+    "created_on": "2025-02-12T11:41:16+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/ScientificErrorsJurassicPark"
+    },
+    "number_of_responses": 36
+  },
+  {
+    "collector_id": 1746146,
+    "name": "Pflanzen im All",
+    "created_on": "2025-05-19T10:38:39+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/pflanzenimall"
+    },
+    "number_of_responses": 24
+  },
+  {
+    "collector_id": 1749813,
+    "name": "Ich höre was, was du nicht hörst?",
+    "created_on": "2025-05-22T17:59:53+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/ichhoerewas"
+    },
+    "number_of_responses": 19
+  },
+  {
+    "collector_id": 1892166,
+    "name": "Pferdequiz",
+    "created_on": "2025-11-25T10:23:28+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Pferdequiz"
+    },
+    "number_of_responses": 24
+  },
+  {
+    "collector_id": 1928660,
+    "name": "Mathematik der Maya",
+    "created_on": "2026-01-13T09:12:58+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/MayaMathematik"
+    },
+    "number_of_responses": 14
+  },
+  {
+    "collector_id": 1961711,
+    "name": "How to - Katzen streicheln",
+    "created_on": "2026-02-11T12:43:59+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/KatzenStreicheln"
+    },
+    "number_of_responses": 11
+  },
+  {
+    "collector_id": 2020115,
+    "name": "Strom & Licht",
+    "created_on": "2026-04-13T09:58:08+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/StromUndLicht"
+    },
+    "number_of_responses": 20
+  },
+  {
+    "collector_id": 2028809,
+    "name": "SoundSecrets",
+    "created_on": "2026-04-21T07:39:11+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/SoundSecrets"
+    },
+    "number_of_responses": 6
+  },
+  {
+    "collector_id": 2053176,
+    "name": "Bilder-Sudoku",
+    "created_on": "2026-05-13T08:50:33+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Bilder-Sudoku"
+    },
+    "number_of_responses": 15
+  },
+  {
+    "collector_id": 2062218,
+    "name": "Die Belohnungsdetektive: Clever handeln",
+    "created_on": "2026-05-22T11:54:35+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Belohnungsdetektive"
+    },
+    "number_of_responses": 29
+  },
+  {
+    "collector_id": 2091192,
+    "name": "Alarmanlage bauen",
+    "created_on": "2026-06-23T07:21:26+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/AlarmanlageBauen"
+    },
+    "number_of_responses": 20
+  },
+  {
+    "collector_id": 2130121,
+    "name": "Did Dinosaurs get sick",
+    "created_on": "2026-08-18T07:44:26+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/DinosaursSick"
+    },
+    "number_of_responses": 4
+  },
+  {
+    "collector_id": 2132650,
+    "name": "Fantasielabor",
+    "created_on": "2026-08-21T10:43:29+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Fantasielabor"
+    },
+    "number_of_responses": 6
+  },
+  {
+    "collector_id": 2132664,
+    "name": "When giant insects ruled",
+    "created_on": "2026-08-21T10:58:21+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/GiantInsects"
+    },
+    "number_of_responses": 6
+  },
+  {
+    "collector_id": 2133528,
+    "name": "Zeitdetektive",
+    "created_on": "2026-08-24T06:52:47+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/Zeitdetektive"
+    },
+    "number_of_responses": 14
+  },
+  {
+    "collector_id": 2134692,
+    "name": "Arabische Mathematik",
+    "created_on": "2026-08-25T10:59:16+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/ArabischeMathematik"
+    },
+    "number_of_responses": 2
+  },
+  {
+    "collector_id": 2143328,
+    "name": "Einführung in die Klassische Archäologie",
+    "created_on": "2026-09-07T07:17:12+00:00",
+    "status": "active",
+    "type": "survey_link",
+    "survey_link": {
+      "url": "https://www.umfrageonline.com/c/KlassischeArchaeologie"
+    },
+    "number_of_responses": 4
+  }
+]
