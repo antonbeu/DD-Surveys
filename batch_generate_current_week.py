@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib import colors
 
 # API Credentials
@@ -58,7 +58,6 @@ def leader_slug(name):
     """Convert 'Dominik Schirra' to 'Schirra-Dominik'"""
     if not name or name == "Unknown":
         return "Unknown"
-    # Remove organization name if present
     name = name.split('(')[0].strip()
     parts = name.strip().split()
     if len(parts) == 1:
@@ -77,32 +76,13 @@ def similarity(a, b):
     """Calculate string similarity"""
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
-def fetch_all_collectors():
-    """Fetch all collectors from API"""
-    collectors = []
-    page = 1
-    auth = b64encode(f"{API_USER}:{API_PASS}".encode()).decode()
-    headers = {'Authorization': f'Basic {auth}'}
-
-    while True:
-        try:
-            url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/collectors?page={page}&limit=100'
-            resp = requests.get(url, headers=headers, timeout=10)
-            if resp.status_code != 200:
-                break
-            data = resp.json()
-            collectors_list = data.get('collectors', [])
-            if not collectors_list:
-                break
-            collectors.extend(collectors_list)
-            if len(collectors_list) < 100:
-                break
-            page += 1
-        except Exception as e:
-            print(f"Error fetching collectors: {e}")
-            break
-
-    return collectors
+def load_collectors():
+    """Load collectors from saved file"""
+    try:
+        with open('collectors_full.json', 'r') as f:
+            return json.load(f)
+    except:
+        return []
 
 def match_courses_to_collectors(collectors):
     """Match courses to collector IDs by name similarity"""
@@ -126,9 +106,9 @@ def match_courses_to_collectors(collectors):
                 'collector_id': best_match.get('collector_id'),
                 'score': best_score
             }
-            print(f"✓ {course_name} → {best_match.get('name')} ({best_score:.0%})")
+            print(f"✓ {course_name}")
         else:
-            print(f"❓ {course_name} (no good match)")
+            print(f"❓ {course_name}")
 
     return mapping
 
@@ -154,7 +134,7 @@ def fetch_responses(collector_id):
             if len(responses_list) < 100:
                 break
             page += 1
-        except Exception as e:
+        except:
             break
 
     responses = []
@@ -164,7 +144,7 @@ def fetch_responses(collector_id):
             resp = requests.get(url, headers=headers, timeout=10)
             if resp.status_code == 200:
                 responses.append(resp.json())
-        except Exception as e:
+        except:
             pass
 
     return responses
@@ -342,11 +322,11 @@ def create_pdf(course_name, leader_name, collector_id, responses):
         return False
 
 # Main
-print("Fetching collectors from API...")
-collectors = fetch_all_collectors()
-print(f"✓ Fetched {len(collectors)} collectors\n")
+print("Loading collectors...\n")
+collectors = load_collectors()
+print(f"✓ Loaded {len(collectors)} collectors\n")
 
-print("Matching courses to collectors...")
+print("Matching courses to collectors...\n")
 mapping = match_courses_to_collectors(collectors)
 print(f"\n✓ Matched {len(mapping)} courses\n")
 
