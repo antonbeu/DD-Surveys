@@ -121,59 +121,14 @@ for course_data in COURSES:
         print(f"✓ {course_name}")
         print(f"  → {best_match.get('name')} ({best_score:.0%})")
     else:
+        unclear.append({
+            'course': course_name,
+            'best_match': best_match.get('name') if best_match else 'N/A',
+            'score': best_score if best_match else 0
+        })
         print(f"❓ {course_name}")
         if best_match:
             print(f"  Best: {best_match.get('name')} ({best_score:.0%})")
-        else:
-            print(f"  No collector found")
-
-        # Ask user for collector ID
-        collector_id_input = input(f"  Collector ID für '{course_name}': ").strip()
-        if collector_id_input:
-            try:
-                collector_id = int(collector_id_input)
-                # Fetch the collector name
-                try:
-                    url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/collectors/{collector_id}'
-                    resp = requests.get(url, headers=headers, timeout=10)
-                    if resp.status_code == 200:
-                        coll_data = resp.json()
-                        mapping[course_name] = {
-                            'collector_id': collector_id,
-                            'collector_name': coll_data.get('name', 'Unknown'),
-                            'score': 1.0
-                        }
-                        print(f"  ✓ Added: {coll_data.get('name', 'Unknown')}")
-                    else:
-                        print(f"  ✗ Collector nicht gefunden (API error: {resp.status_code})")
-                        unclear.append({
-                            'course': course_name,
-                            'best_match': best_match.get('name') if best_match else 'N/A',
-                            'score': best_score if best_match else 0,
-                            'user_input': collector_id_input
-                        })
-                except Exception as e:
-                    print(f"  ✗ Fehler: {e}")
-                    unclear.append({
-                        'course': course_name,
-                        'best_match': best_match.get('name') if best_match else 'N/A',
-                        'score': best_score if best_match else 0,
-                        'user_input': collector_id_input
-                    })
-            except ValueError:
-                print(f"  ✗ Ungültige Collector ID")
-                unclear.append({
-                    'course': course_name,
-                    'best_match': best_match.get('name') if best_match else 'N/A',
-                    'score': best_score if best_match else 0
-                })
-        else:
-            unclear.append({
-                'course': course_name,
-                'best_match': best_match.get('name') if best_match else 'N/A',
-                'score': best_score if best_match else 0
-            })
-            print(f"  Übersprungen")
 
 print(f"\n{'='*80}")
 print(f"SUMMARY: {len(mapping)} matched, {len(unclear)} unclear\n")
