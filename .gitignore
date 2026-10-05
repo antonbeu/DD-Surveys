@@ -48,3 +48,6 @@ output/
 # Generated mapping and cache files
 *_mapping.json
 collectors*.json
+
+# ZIP files (generated deliverables)
+*.zip
