@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 import json
+import os
 import requests
 from base64 import b64encode
 from difflib import SequenceMatcher
@@ -40,33 +41,58 @@ COURSES = [
 def similarity(a, b):
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
-print("Fetching all collectors...")
-auth = b64encode(f"{API_USER}:{API_PASS}".encode()).decode()
-headers = {'Authorization': f'Basic {auth}'}
+print("Loading collectors...\n")
 
-collectors = []
-page = 1
-
-while True:
+# Try to load cached collectors first
+collectors_cache_file = 'collectors_full.json'
+if os.path.exists(collectors_cache_file):
+    print(f"Loading from cache: {collectors_cache_file}")
     try:
-        url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/collectors?page={page}&limit=100'
-        resp = requests.get(url, headers=headers, timeout=10)
-        if resp.status_code != 200:
-            break
-        data = resp.json()
-        collectors_list = data.get('collectors', [])
-        if not collectors_list:
-            break
-        collectors.extend(collectors_list)
-        print(f"  Page {page}: {len(collectors_list)} collectors (total: {len(collectors)})")
-        if len(collectors_list) < 100:
-            break
-        page += 1
-    except Exception as e:
-        print(f"Error: {e}")
-        break
+        with open(collectors_cache_file, 'r') as f:
+            collectors = json.load(f)
+        print(f"✓ Loaded {len(collectors)} collectors from cache\n")
+    except:
+        print(f"Cache load failed, fetching from API...\n")
+        collectors = None
+else:
+    collectors = None
 
-print(f"✓ Loaded {len(collectors)} collectors total\n")
+# If no cache, fetch from API
+if collectors is None:
+    print("Fetching all collectors from API...")
+    auth = b64encode(f"{API_USER}:{API_PASS}".encode()).decode()
+    headers = {'Authorization': f'Basic {auth}'}
+
+    collectors = []
+    page = 1
+
+    while True:
+        try:
+            url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/collectors?page={page}&limit=100'
+            resp = requests.get(url, headers=headers, timeout=10)
+            if resp.status_code != 200:
+                break
+            data = resp.json()
+            collectors_list = data.get('collectors', [])
+            if not collectors_list:
+                break
+            collectors.extend(collectors_list)
+            print(f"  Page {page}: {len(collectors_list)} collectors (total: {len(collectors)})")
+            if len(collectors_list) < 100:
+                break
+            page += 1
+        except Exception as e:
+            print(f"Error: {e}")
+            break
+
+    print(f"✓ Fetched {len(collectors)} collectors total")
+
+    # Save to cache
+    with open(collectors_cache_file, 'w') as f:
+        json.dump(collectors, f)
+    print(f"✓ Saved to {collectors_cache_file}\n")
+
+print(f"✓ Using {len(collectors)} collectors\n")
 
 # Match courses to collectors
 print("Matching courses to collectors...\n")
