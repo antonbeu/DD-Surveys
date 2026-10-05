@@ -76,41 +76,14 @@ def similarity(a, b):
     """Calculate string similarity"""
     return SequenceMatcher(None, a.lower(), b.lower()).ratio()
 
-def load_collectors():
-    """Load collectors from saved file"""
+def load_mapping():
+    """Load pre-computed mapping from JSON file"""
     try:
-        with open('collectors_full.json', 'r') as f:
-            return json.load(f)
+        with open('current_week_mapping.json', 'r') as f:
+            data = json.load(f)
+            return data.get('confirmed', {})
     except:
-        return []
-
-def match_courses_to_collectors(collectors):
-    """Match courses to collector IDs by name similarity"""
-    mapping = {}
-
-    for course_data in COURSES:
-        course_name = course_data['course']
-        best_match = None
-        best_score = 0
-
-        for collector in collectors:
-            coll_name = collector.get('name', '')
-            score = similarity(course_name, coll_name)
-
-            if score > best_score:
-                best_score = score
-                best_match = collector
-
-        if best_match and best_score > 0.6:
-            mapping[course_name] = {
-                'collector_id': best_match.get('collector_id'),
-                'score': best_score
-            }
-            print(f"✓ {course_name}")
-        else:
-            print(f"❓ {course_name}")
-
-    return mapping
+        return {}
 
 def fetch_responses(collector_id):
     """Fetch full response details for a collector"""
@@ -322,13 +295,9 @@ def create_pdf(course_name, leader_name, collector_id, responses):
         return False
 
 # Main
-print("Loading collectors...\n")
-collectors = load_collectors()
-print(f"✓ Loaded {len(collectors)} collectors\n")
-
-print("Matching courses to collectors...\n")
-mapping = match_courses_to_collectors(collectors)
-print(f"\n✓ Matched {len(mapping)} courses\n")
+print("Loading pre-computed mapping...\n")
+mapping = load_mapping()
+print(f"✓ Loaded {len(mapping)} course-to-collector mappings\n")
 
 print("Generating PDFs...\n")
 success_count = 0
