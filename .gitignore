@@ -43,11 +43,7 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
-output/
 
-# Generated mapping and cache files
-*_mapping.json
-collectors*.json
-
-# ZIP files (generated deliverables)
-*.zip
+# Survey generation (surveys/ directory contains the organized work)
+/surveys/output/
+/surveys/*.json
