@@ -13,11 +13,12 @@ from reportlab.lib import colors
 
 WEEK_NUM = "43"
 
+# EXACT column names from CSV (mit \xa0 am Ende wo nötig!)
 QUESTION_MAPPING = {
     'In einem Selbstlernkurs': 'Möchtest du das Thema vertiefen?',
     'In einem mehrwöchigen Live-Projekt mit einer Dozentin / einem Dozenten': 'Möchtest du das Thema vertiefen?',
     'In einem Learning Club, der sich mit ähnlichen Themen beschäftigt': 'Möchtest du das Thema vertiefen?',
-    'In einem Selbstlernprojekt, das du jederzeit starten kannst ': 'Möchtest du das Thema vertiefen?',
+    'In einem Selbstlernprojekt, das du jederzeit starten kannst\xa0': 'Möchtest du das Thema vertiefen?',  # \xa0 = Non-Breaking-Space!
     'Andere': 'Möchtest du das Thema vertiefen?',
 }
 
@@ -53,10 +54,8 @@ def create_pdf(course_name, responses_by_question):
     doc = SimpleDocTemplate(filename, pagesize=A4, topMargin=1.2*cm, bottomMargin=1.2*cm, leftMargin=1.2*cm, rightMargin=1.2*cm)
     story = []
     
-    # STYLES - ohne Parent, um Vererbung zu vermeiden!
     title_style = ParagraphStyle('Title', fontSize=16, textColor=colors.HexColor('#1F4D7B'), spaceAfter=10, fontName='Helvetica-Bold')
     question_style = ParagraphStyle('Question', fontSize=10, textColor=colors.HexColor('#1F4D7B'), spaceAfter=4, spaceBefore=2, fontName='Helvetica-Bold')
-    # WICHTIG: Normal text - SCHWARZ, NICHT FETT, NICHT BLAU
     normal_text_style = ParagraphStyle('NormalText', fontSize=8, textColor=colors.black, spaceAfter=1, leading=9, leftIndent=10, fontName='Helvetica')
     
     story.append(Paragraph(course_name, title_style))
@@ -82,12 +81,12 @@ def create_pdf(course_name, responses_by_question):
                 story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
                 story.append(Spacer(1, 0.1*cm))
             
-            # OPTIONEN mit NORMAL TEXT STYLE
             for option_col, parent in QUESTION_MAPPING.items():
                 if parent == question and option_col in responses_by_question:
                     option_answers = responses_by_question[option_col]
                     clean_opt = [a for a in option_answers if a and a.strip() in ['x', 'Ja']]
                     if clean_opt:
+                        # Bullet point mit normalem schwarzem Text
                         story.append(Paragraph(f"• {option_col.strip()}", normal_text_style))
                     processed.add(option_col)
             
@@ -143,7 +142,7 @@ with open(csv_file, 'r', encoding='utf-8') as f:
 
 os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
 
-print(f"\nFINAL FIX - Normal Text (schwarze, nicht fette Bullet Points)\n")
+print(f"\nFINAL - Mit exakten CSV-Spaltennamen\n")
 for course in sorted(responses_by_course.keys()):
     if len(next(iter(responses_by_course[course].values()))) > 0:
         create_pdf(course, responses_by_course[course])
