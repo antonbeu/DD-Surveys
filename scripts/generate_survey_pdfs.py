@@ -99,7 +99,9 @@ def draw_bar_chart(ratings, filename):
         height = bar.get_height()
         ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}', 
                 ha='center', va='bottom', fontsize=10, fontweight='bold')
+    avg = sum(ratings) / len(ratings) if ratings else 0
     ax.set_ylabel('Anzahl', fontsize=10)
+    ax.set_xlabel(f'Bewertung (Ø: {avg:.1f})', fontsize=9)
     ax.set_ylim(0, max(values) * 1.3)
     ax.spines['top'].set_visible(False)
     ax.spines['right'].set_visible(False)
@@ -117,22 +119,32 @@ def create_pdf(course_title, leader, collector_id, responses):
         parts = leader_slug.split()
         if len(parts) >= 2:
             leader_slug = f"{parts[-1]}-{parts[0]}"
-    filename = f"/tmp/kw43_pdfs_api/{leader_slug}_KW{WEEK_NUM}_{umlaut_slug(course_title)}.pdf"
+    filename = f"/tmp/kw43_pdfs_final/{leader_slug}_KW{WEEK_NUM}_{umlaut_slug(course_title)}.pdf"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
+    
     doc = SimpleDocTemplate(filename, pagesize=A4, rightMargin=1*cm, leftMargin=1*cm,
                            topMargin=1*cm, bottomMargin=1*cm)
     story = []
     
-    title_style = ParagraphStyle('Title', fontSize=18, textColor=colors.HexColor('#1F4D7B'), spaceAfter=8, fontName='Helvetica-Bold')
-    question_style = ParagraphStyle('Question', fontSize=11, textColor=colors.HexColor('#1F4D7B'), spaceAfter=6, spaceBefore=6, fontName='Helvetica-Bold')
-    normal_style = ParagraphStyle('Normal', fontSize=9, textColor=colors.black, spaceAfter=2, leftIndent=10, fontName='Helvetica')
+    title_style = ParagraphStyle('Title', fontSize=18, textColor=colors.HexColor('#1F4D7B'), 
+                                spaceAfter=8, fontName='Helvetica-Bold')
+    meta_style = ParagraphStyle('Meta', fontSize=9, textColor=colors.black, spaceAfter=10, fontName='Helvetica')
+    question_style = ParagraphStyle('Question', fontSize=11, textColor=colors.HexColor('#1F4D7B'), 
+                                   spaceAfter=6, spaceBefore=6, fontName='Helvetica-Bold')
+    normal_style = ParagraphStyle('Normal', fontSize=9, textColor=colors.black, spaceAfter=2, 
+                                 leftIndent=10, fontName='Helvetica')
+    comment_header_style = ParagraphStyle('CommentHeader', fontSize=9, textColor=colors.black, 
+                                         spaceAfter=3, fontName='Helvetica-Bold')
     
     story.append(Paragraph(course_title, title_style))
+    meta_text = f"<b>Zeitraum:</b> {DATE_FROM} bis {DATE_TO} | <b>Antworten:</b> {len(responses)}"
+    story.append(Paragraph(meta_text, meta_style))
     story.append(Spacer(1, 0.3*cm))
     
     questions = aggregate_by_question(responses)
     for q in questions:
         story.append(Paragraph(q['text'], question_style))
+        
         if q['ratings']:
             chart_file = f"/tmp/chart_{collector_id}_{q['element_id']}.png"
             if draw_bar_chart(q['ratings'], chart_file):
@@ -142,16 +154,19 @@ def create_pdf(course_title, leader, collector_id, responses):
                     story.append(Spacer(1, 0.2*cm))
                 except:
                     pass
+        
         if q['choices']:
             choice_counts = Counter(q['choices'])
             for choice, count in choice_counts.most_common():
                 story.append(Paragraph(f"• {choice}: {count}x", normal_style))
             story.append(Spacer(1, 0.2*cm))
+        
         if q['texts']:
+            story.append(Paragraph("Kommentare:", comment_header_style))
             for text in q['texts'][:5]:
                 text_clean = text.replace('<', '&lt;').replace('>', '&gt;')[:250]
                 if text_clean.strip():
-                    story.append(Paragraph(f"• {text_clean}", normal_style))
+                    story.append(Paragraph(f"→ {text_clean}", normal_style))
             story.append(Spacer(1, 0.3*cm))
     
     try:
@@ -164,7 +179,7 @@ with open('/tmp/kw43_mapping.json', 'r', encoding='utf-8') as f:
     mapping = json.load(f)
 
 print("\n" + "=" * 80)
-print(f"KW{WEEK_NUM} - PDF GENERATION (API)")
+print(f"KW{WEEK_NUM} - PDF GENERATION (API - CLEAN)")
 print("=" * 80 + "\n")
 
 generated = 0
