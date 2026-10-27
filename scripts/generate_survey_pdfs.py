@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch, cm
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image, PageBreak
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib import colors
 
 WEEK_NUM = "43"
@@ -64,6 +64,16 @@ def draw_bar_chart(values, filename):
     plt.savefig(filename, dpi=150, bbox_inches='tight')
     plt.close()
 
+def is_yes_no(answers):
+    """Check if answers are only Ja/Nein/x"""
+    clean = [str(a).strip().lower() for a in answers if a]
+    return all(v in ['ja', 'nein', 'x', ''] for v in clean)
+
+def is_text_answer(answers):
+    """Check if answers are text (not short categorical)"""
+    text_answers = [str(a).strip() for a in answers if a and a.strip() and a.strip() not in ['Ja', 'Nein', 'x', '', '-']]
+    return len(text_answers) > 0 and any(len(a) > 20 for a in text_answers)
+
 def create_pdf(course_name, leader_name, responses_by_question):
     if not responses_by_question:
         return None
@@ -107,7 +117,7 @@ def create_pdf(course_name, leader_name, responses_by_question):
         leftIndent=10
     )
     
-    # Title only
+    # Title
     story.append(Paragraph(course_name, title_style))
     story.append(Spacer(1, 0.15*cm))
     
@@ -115,50 +125,70 @@ def create_pdf(course_name, leader_name, responses_by_question):
         if not answers:
             continue
         
+        # Skip empty questions
+        clean_answers = [a for a in answers if a and a.strip()]
+        if not clean_answers:
+            continue
+        
         # Frage
         story.append(Paragraph(question, question_style))
         
         # Try to parse as numbers
         numeric_answers = []
-        for ans in answers:
+        for ans in clean_answers:
             try:
                 numeric_answers.append(int(ans))
             except:
                 pass
         
-        if numeric_answers and len(numeric_answers) == len(answers):
-            # Numeric: Chart only, no text comments
+        # Case 1: Numeric (rating scale)
+        if numeric_answers and len(numeric_answers) == len(clean_answers):
             chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
             draw_bar_chart(numeric_answers, chart_file)
             story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
             story.append(Spacer(1, 0.1*cm))
             
-        else:
-            # Categorical or text
-            counter = Counter(answers)
-            
-            # Show chart if categorical (multiple categories with counts)
-            if len(counter) > 1 and len(counter) <= 5 and all(isinstance(v, str) and len(v) < 50 for v in counter.keys()):
+        # Case 2: Yes/No answers
+        elif is_yes_no(clean_answers):
+            # Show chart only if multiple Ja/Nein
+            counter = Counter([a.lower() for a in clean_answers if a.strip().lower() in ['ja', 'nein']])
+            if len(counter) > 0:
                 chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
-                draw_bar_chart(answers, chart_file)
+                draw_bar_chart(clean_answers, chart_file)
+                story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
+            story.append(Spacer(1, 0.1*cm))
+            
+        # Case 3: Categorical (multiple choice)
+        elif len(set(clean_answers)) > 1 and len(set(clean_answers)) <= 5:
+            # Check if these are short category answers or text
+            if not is_text_answer(clean_answers):
+                chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
+                draw_bar_chart(clean_answers, chart_file)
                 story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
                 story.append(Spacer(1, 0.1*cm))
             else:
-                # Text comments only
-                text_answers = [a for a in answers if a and a.strip() and a not in ['Ja', 'Nein', 'x', '', '-']]
-                
-                if text_answers:
-                    for text in text_answers[:5]:
-                        text_clean = str(text).replace('\n', ' ').strip()[:140]
-                        if text_clean:
-                            story.append(Paragraph(f"• {text_clean}", text_style))
-                    story.append(Spacer(1, 0.15*cm))
+                # Text responses
+                for text in clean_answers[:5]:
+                    text_clean = str(text).replace('\n', ' ').strip()[:140]
+                    if text_clean and text_clean not in ['Ja', 'Nein', 'x', '-', '']:
+                        story.append(Paragraph(f"• {text_clean}", text_style))
+                story.append(Spacer(1, 0.15*cm))
+        
+        # Case 4: Text/comment answers
+        else:
+            text_answers = [a for a in clean_answers if a and a.strip() and a.strip() not in ['Ja', 'Nein', 'x', '', '-']]
+            if text_answers:
+                for text in text_answers[:5]:
+                    text_clean = str(text).replace('\n', ' ').strip()[:140]
+                    if text_clean:
+                        story.append(Paragraph(f"• {text_clean}", text_style))
+            story.append(Spacer(1, 0.15*cm))
     
     try:
         doc.build(story)
         return filename
     except Exception as e:
-        print(f"Error creating PDF: {e}")
+        print(f"Error: {e}")
         return None
 
 # Parse CSV
@@ -198,7 +228,7 @@ for course_name, course_data in mapping['confirmed'].items():
 os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
 
 print(f"\n{'='*80}")
-print(f"KW{WEEK_NUM} - PDF GENERATION (CLEAN)")
+print(f"KW{WEEK_NUM} - FINAL PDF GENERATION")
 print(f"{'='*80}\n")
 
 generated = 0
@@ -222,8 +252,6 @@ for course_name in sorted(responses_by_course.keys()):
             total_responses += response_count
         else:
             print(f"✗ {course_name:<50} (Failed)")
-    else:
-        print(f"❌ {course_name:<50} (No responses)")
 
 print(f"\n{'='*80}")
 print(f"Generated: {generated} PDFs | Total: {total_responses} responses")
