@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-import csv
+import json
 import os
-from collections import defaultdict, Counter
+import requests
+from base64 import b64encode
+from collections import Counter
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -11,6 +13,12 @@ from reportlab.lib.units import inch, cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib import colors
 
+API_USER = "505973-1597"
+API_PASS = "s3ocr33932dpwpffw9ojalf43k9cwc8kz5zi"
+SURVEY_ID = "1908032"
+
+DATE_FROM = "2026-10-18"
+DATE_TO = "2026-10-24"
 WEEK_NUM = "43"
 
 def umlaut_slug(text):
@@ -19,107 +27,161 @@ def umlaut_slug(text):
         text = text.replace(k, v)
     return ''.join(c if c.isalnum() or c in ' -.' else '' for c in text).strip()
 
-def draw_bar_chart(values, filename):
-    counter = Counter(values)
-    labels = [str(k) for k in sorted(counter.keys())]
-    counts = [counter[k] for k in sorted(counter.keys())]
-    
-    fig, ax = plt.subplots(figsize=(5.5, 2.2))
-    bars = ax.bar(labels, counts, color='#2E86AB', edgecolor='#1F4D7B', linewidth=1.5)
-    
+def fetch_responses(collector_id):
+    auth = b64encode(f"{API_USER}:{API_PASS}".encode()).decode()
+    headers = {'Authorization': f'Basic {auth}'}
+    url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/responses'
+    params = {'started_on[from]': DATE_FROM, 'started_on[to]': DATE_TO}
+    try:
+        resp = requests.get(url, headers=headers, params=params, timeout=30)
+        all_responses = resp.json().get('responses', [])
+        return [r for r in all_responses if r.get('collector_id') == collector_id]
+    except:
+        return []
+
+def fetch_response_details(response_id):
+    auth = b64encode(f"{API_USER}:{API_PASS}".encode()).decode()
+    headers = {'Authorization': f'Basic {auth}'}
+    url = f'https://api.surveyhero.com/v1/surveys/{SURVEY_ID}/responses/{response_id}'
+    try:
+        resp = requests.get(url, headers=headers, timeout=30)
+        return resp.json()
+    except:
+        return {}
+
+def aggregate_by_question(responses):
+    if not responses:
+        return []
+    sample = fetch_response_details(responses[0]['response_id'])
+    if 'answers' not in sample:
+        return []
+    q_map = {}
+    for answer in sample['answers']:
+        q_text = answer.get('question_text', 'Unknown')
+        q_type = answer.get('type', '')
+        element_id = answer.get('element_id')
+        if q_text and element_id not in q_map:
+            q_map[element_id] = {'text': q_text, 'type': q_type, 'element_id': element_id,
+                                 'ratings': [], 'choices': [], 'texts': []}
+    for resp in responses:
+        details = fetch_response_details(resp['response_id'])
+        if 'answers' not in details:
+            continue
+        for answer in details['answers']:
+            element_id = answer.get('element_id')
+            if element_id not in q_map:
+                continue
+            answer_type = answer.get('type', '')
+            if answer_type == 'number':
+                value = answer.get('number')
+                if value is not None:
+                    q_map[element_id]['ratings'].append(int(value))
+            elif answer_type == 'choices':
+                for choice in answer.get('choices', []):
+                    label = choice.get('label', '')
+                    if label:
+                        q_map[element_id]['choices'].append(label)
+            elif answer_type == 'text':
+                value = answer.get('text', '')
+                if value:
+                    q_map[element_id]['texts'].append(value)
+    return sorted(q_map.values(), key=lambda x: x['element_id'])
+
+def draw_bar_chart(ratings, filename):
+    if not ratings:
+        return None
+    counts = Counter(ratings)
+    labels = sorted(counts.keys())
+    values = [counts[l] for l in labels]
+    fig, ax = plt.subplots(figsize=(5, 2.5), dpi=100)
+    bars = ax.bar([str(l) for l in labels], values, color='#2E86AB', edgecolor='#1F4D7B', linewidth=1.5)
     for bar in bars:
         height = bar.get_height()
-        ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}', ha='center', va='bottom', fontsize=8)
-    
-    ax.set_ylabel('Anzahl', fontsize=9)
-    ax.set_ylim(0, max(counts) * 1.2)
-    ax.grid(axis='y', alpha=0.3)
+        ax.text(bar.get_x() + bar.get_width()/2., height, f'{int(height)}', 
+                ha='center', va='bottom', fontsize=10, fontweight='bold')
+    ax.set_ylabel('Anzahl', fontsize=10)
+    ax.set_ylim(0, max(values) * 1.3)
+    ax.spines['top'].set_visible(False)
+    ax.spines['right'].set_visible(False)
+    ax.grid(axis='y', alpha=0.3, linestyle='--')
     plt.tight_layout()
-    plt.savefig(filename, dpi=150, bbox_inches='tight')
+    plt.savefig(filename, dpi=100, bbox_inches='tight')
     plt.close()
+    return filename
 
-def is_option_column(col_name):
-    """Spalten die mit 'In einem', 'Mit ' anfangen oder 'Andere' sind = Optionen"""
-    stripped = col_name.strip()
-    return stripped.startswith('In einem') or stripped.startswith('Mit ') or stripped == 'Andere'
-
-def create_pdf(course_name, data_row, all_columns):
-    course_slug = umlaut_slug(course_name)
-    filename = f"/tmp/kw43_pdfs/Kurs_KW{WEEK_NUM}_{course_slug}.pdf"
-    
-    doc = SimpleDocTemplate(filename, pagesize=A4, topMargin=1.2*cm, bottomMargin=1.2*cm, leftMargin=1.2*cm, rightMargin=1.2*cm)
+def create_pdf(course_title, collector_id, responses):
+    if not responses:
+        return None
+    filename = f"/tmp/kw43_pdfs_api/{umlaut_slug(course_title)}_KW{WEEK_NUM}.pdf"
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
+    doc = SimpleDocTemplate(filename, pagesize=A4, rightMargin=1*cm, leftMargin=1*cm,
+                           topMargin=1*cm, bottomMargin=1*cm)
     story = []
     
-    title_style = ParagraphStyle('Title', fontSize=16, textColor=colors.HexColor('#1F4D7B'), spaceAfter=10, fontName='Helvetica-Bold')
-    question_style = ParagraphStyle('Question', fontSize=10, textColor=colors.HexColor('#1F4D7B'), spaceAfter=4, spaceBefore=2, fontName='Helvetica-Bold')
-    normal_text_style = ParagraphStyle('NormalText', fontSize=8, textColor=colors.black, spaceAfter=1, leading=9, leftIndent=10, fontName='Helvetica')
+    title_style = ParagraphStyle('Title', fontSize=18, textColor=colors.HexColor('#1F4D7B'), spaceAfter=8, fontName='Helvetica-Bold')
+    question_style = ParagraphStyle('Question', fontSize=11, textColor=colors.HexColor('#1F4D7B'), spaceAfter=6, spaceBefore=6, fontName='Helvetica-Bold')
+    normal_style = ParagraphStyle('Normal', fontSize=9, textColor=colors.black, spaceAfter=2, leftIndent=10, fontName='Helvetica')
     
-    story.append(Paragraph(course_name, title_style))
-    story.append(Spacer(1, 0.15*cm))
+    story.append(Paragraph(course_title, title_style))
+    story.append(Spacer(1, 0.3*cm))
     
-    processed = set()
+    questions = aggregate_by_question(responses)
+    for q in questions:
+        story.append(Paragraph(q['text'], question_style))
+        if q['ratings']:
+            chart_file = f"/tmp/chart_{collector_id}_{q['element_id']}.png"
+            if draw_bar_chart(q['ratings'], chart_file):
+                try:
+                    img = Image(chart_file, width=4.5*inch, height=2*inch)
+                    story.append(img)
+                    story.append(Spacer(1, 0.2*cm))
+                except:
+                    pass
+        if q['choices']:
+            choice_counts = Counter(q['choices'])
+            for choice, count in choice_counts.most_common():
+                story.append(Paragraph(f"• {choice}: {count}x", normal_style))
+            story.append(Spacer(1, 0.2*cm))
+        if q['texts']:
+            for text in q['texts'][:5]:
+                text_clean = text.replace('<', '&lt;').replace('>', '&gt;')[:250]
+                if text_clean.strip():
+                    story.append(Paragraph(f"• {text_clean}", normal_style))
+            story.append(Spacer(1, 0.3*cm))
     
-    for i, col in enumerate(all_columns):
-        if col in processed or is_option_column(col):
-            continue  # Überspringe Optionen jetzt noch
-        
-        answer = data_row.get(col, '').strip()
-        if not answer:
-            continue
-        
-        story.append(Paragraph(col, question_style))
-        
-        # Ja/Nein Frage?
-        if answer in ['Ja', 'Nein']:
-            # Schaue nach folgenden Optionen
-            ja_nein_counter = Counter()
-            for j in range(i + 1, len(all_columns)):
-                next_col = all_columns[j]
-                if is_option_column(next_col):
-                    next_val = data_row.get(next_col, '').strip()
-                    if next_val in ['x', 'Ja']:
-                        ja_nein_counter[next_col] += 1
-                    processed.add(next_col)
-                else:
-                    break  # Stoppe bei nächster Nicht-Option
-            
-            # Zeige Ja/Nein Optionen als Bullet Points
-            if ja_nein_counter:
-                for opt, count in ja_nein_counter.most_common():
-                    opt_clean = opt.strip()
-                    story.append(Paragraph(f"• {opt_clean}: {count}x", normal_text_style))
-            story.append(Spacer(1, 0.1*cm))
-        else:
-            # Text Antwort
-            text_clean = answer.replace('\n', ' ').strip()[:140]
-            if text_clean and text_clean not in ['-', '']:
-                story.append(Paragraph(f"• {text_clean}", normal_text_style))
-            story.append(Spacer(1, 0.1*cm))
-        
-        processed.add(col)
-    
-    doc.build(story)
+    try:
+        doc.build(story)
+        return filename
+    except Exception as e:
+        return None
 
-csv_file = "/root/.claude/uploads/6ffeaf5f-3332-5ad0-9338-47f78b6cac3f/55fd52ea-UmfrageOnline-Beantwortungen-1908032-2026-10-18-2026-10-24.csv"
+with open('/tmp/kw43_mapping.json', 'r', encoding='utf-8') as f:
+    mapping = json.load(f)
 
-os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
+print("\n" + "=" * 80)
+print(f"KW{WEEK_NUM} - PDF GENERATION (API)")
+print("=" * 80 + "\n")
 
-with open(csv_file, 'r', encoding='utf-8') as f:
-    reader = csv.DictReader(f, delimiter=';')
-    all_columns = [c for c in reader.fieldnames if c not in ['ID', 'Gestartet am', 'Zuletzt aktualisiert am', 'Status', 'Collector', 'Sprache', 'IP-Adresse', 'Gerät']]
-    f.seek(0)
-    reader = csv.DictReader(f, delimiter=';')
-    
-    courses_done = set()
-    for row in reader:
-        if not row.get('Collector') or 'nicht abgeschlossen' in row.get('Status', '').lower():
-            continue
-        
-        course_name = row['Collector']
-        if course_name not in courses_done:
-            create_pdf(course_name, row, all_columns)
-            courses_done.add(course_name)
-            print(f"✓ {course_name}")
+generated = 0
+failed = 0
 
-print(f"\n{len(courses_done)} PDFs generated")
+for i, (course_title, info) in enumerate(mapping['confirmed'].items(), 1):
+    collector_id = info['collector_id']
+    print(f"{i:2d}. {course_title[:40]:40s}", end=' ', flush=True)
+    responses = fetch_responses(collector_id)
+    if not responses:
+        print("❌ No responses")
+        failed += 1
+        continue
+    pdf_file = create_pdf(course_title, collector_id, responses)
+    if pdf_file:
+        print(f"✓ ({len(responses)} responses)")
+        generated += 1
+    else:
+        print("❌ PDF error")
+        failed += 1
+
+print("\n" + "=" * 80)
+print(f"Generated: {generated}/{len(mapping['confirmed'])} PDFs")
+print("=" * 80)
 
