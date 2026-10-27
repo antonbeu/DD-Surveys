@@ -14,11 +14,19 @@ from reportlab.lib import colors
 
 WEEK_NUM = "43"
 
+# MAPPING: Multiple-Choice Optionen zu ihrer Eltern-Frage
+QUESTION_MAPPING = {
+    'In einem Selbstlernkurs': 'Möchtest du das Thema vertiefen?',
+    'In einem mehrwöchigen Live-Projekt mit einer Dozentin / einem Dozenten': 'Möchtest du das Thema vertiefen?',
+    'In einem Learning Club, der sich mit ähnlichen Themen beschäftigt': 'Möchtest du das Thema vertiefen?',
+    'In einem Selbstlernprojekt, das du jederzeit starten kannst ': 'Möchtest du das Thema vertiefen?',
+    'Andere': 'Möchtest du das Thema vertiefen?',
+}
+
 def umlaut_slug(text):
     replacements = {
         'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue', 'ß': 'ss',
         'é': 'e', 'è': 'e', 'ê': 'e', 'É': 'E', 'á': 'a', 'à': 'a', 'â': 'a',
-        '👻': '', '👽': '', '🐶': '', '🤖': '', '✅': '', '❌': '', '☺': '', '😃': '', '🤩': '', '💕': '', '👍': '', '😁': '', '😊': '', '😀': ''
     }
     for k, v in replacements.items():
         text = text.replace(k, v)
@@ -57,28 +65,16 @@ def draw_bar_chart(values, filename):
     ax.set_ylabel('Anzahl', fontsize=9)
     ax.set_ylim(0, max(counts) * 1.2)
     ax.grid(axis='y', alpha=0.3, linestyle='--', linewidth=0.5)
-    ax.tick_params(axis='x', labelsize=8)
-    ax.tick_params(axis='y', labelsize=8)
     
     plt.tight_layout()
     plt.savefig(filename, dpi=150, bbox_inches='tight')
     plt.close()
 
-def is_yes_no(answers):
-    """Check if answers are only Ja/Nein/x"""
-    clean = [str(a).strip().lower() for a in answers if a]
-    return all(v in ['ja', 'nein', 'x', ''] for v in clean)
-
-def is_text_answer(answers):
-    """Check if answers are text (not short categorical)"""
-    text_answers = [str(a).strip() for a in answers if a and a.strip() and a.strip() not in ['Ja', 'Nein', 'x', '', '-']]
-    return len(text_answers) > 0 and any(len(a) > 20 for a in text_answers)
-
-def create_pdf(course_name, leader_name, responses_by_question):
+def create_pdf(course_name, responses_by_question):
     if not responses_by_question:
         return None
     
-    leader_slug_name = leader_slug(leader_name)
+    leader_slug_name = 'Kurs'
     course_slug = umlaut_slug(course_name)
     filename = f"/tmp/kw43_pdfs/{leader_slug_name}_KW{WEEK_NUM}_{course_slug}.pdf"
     
@@ -92,8 +88,6 @@ def create_pdf(course_name, leader_name, responses_by_question):
         fontSize=16,
         textColor=colors.HexColor('#1F4D7B'),
         spaceAfter=10,
-        spaceBefore=0,
-        alignment=0,
         fontName='Helvetica-Bold'
     )
     
@@ -121,68 +115,76 @@ def create_pdf(course_name, leader_name, responses_by_question):
     story.append(Paragraph(course_name, title_style))
     story.append(Spacer(1, 0.15*cm))
     
+    # Process grouped questions
+    processed = set()
+    
     for question, answers in responses_by_question.items():
-        if not answers:
+        if question in processed:
             continue
         
-        # Skip empty questions
         clean_answers = [a for a in answers if a and a.strip()]
         if not clean_answers:
             continue
         
-        # Frage
-        story.append(Paragraph(question, question_style))
-        
-        # Try to parse as numbers
-        numeric_answers = []
-        for ans in clean_answers:
-            try:
-                numeric_answers.append(int(ans))
-            except:
-                pass
-        
-        # Case 1: Numeric (rating scale)
-        if numeric_answers and len(numeric_answers) == len(clean_answers):
-            chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
-            draw_bar_chart(numeric_answers, chart_file)
-            story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-            story.append(Spacer(1, 0.1*cm))
+        # Check if this is a parent question with options
+        if question in ['Möchtest du das Thema vertiefen?']:
+            story.append(Paragraph(question, question_style))
             
-        # Case 2: Yes/No answers
-        elif is_yes_no(clean_answers):
-            # Show chart only if multiple Ja/Nein
-            counter = Counter([a.lower() for a in clean_answers if a.strip().lower() in ['ja', 'nein']])
-            if len(counter) > 0:
-                chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
-                draw_bar_chart(clean_answers, chart_file)
+            # Add chart for main answer
+            main_answers = [a for a in clean_answers if a.strip() in ['Ja', 'Nein']]
+            if main_answers:
+                chart_file = f"/tmp/chart_{hash(question)}.png"
+                draw_bar_chart(main_answers, chart_file)
                 story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-            story.append(Spacer(1, 0.1*cm))
+                story.append(Spacer(1, 0.15*cm))
             
-        # Case 3: Categorical (multiple choice)
-        elif len(set(clean_answers)) > 1 and len(set(clean_answers)) <= 5:
-            # Check if these are short category answers or text
-            if not is_text_answer(clean_answers):
-                chart_file = f"/tmp/chart_{course_name}_{hash(question)}.png"
-                draw_bar_chart(clean_answers, chart_file)
+            # Add option answers as text (NOT as questions)
+            for option_col, parent in QUESTION_MAPPING.items():
+                if parent == question and option_col in responses_by_question:
+                    option_answers = responses_by_question[option_col]
+                    clean_opt = [a for a in option_answers if a and a.strip() and a.strip() in ['x', 'Ja', 'Ja ']]
+                    if clean_opt:
+                        story.append(Paragraph(f"• {option_col.strip()}", text_style))
+                    processed.add(option_col)
+            
+            story.append(Spacer(1, 0.15*cm))
+        
+        elif question in QUESTION_MAPPING:
+            # Skip - already processed as option
+            processed.add(question)
+        
+        else:
+            # Normal question
+            story.append(Paragraph(question, question_style))
+            
+            # Numeric?
+            numeric = []
+            for ans in clean_answers:
+                try:
+                    numeric.append(int(ans))
+                except:
+                    pass
+            
+            if numeric and len(numeric) == len(clean_answers):
+                chart_file = f"/tmp/chart_{hash(question)}.png"
+                draw_bar_chart(numeric, chart_file)
                 story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-                story.append(Spacer(1, 0.1*cm))
+            elif clean_answers[0].strip() in ['Ja', 'Nein']:
+                # Yes/No
+                if any(a.strip() in ['Ja', 'Nein'] for a in clean_answers):
+                    chart_file = f"/tmp/chart_{hash(question)}.png"
+                    draw_bar_chart([a for a in clean_answers if a.strip() in ['Ja', 'Nein']], chart_file)
+                    story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
             else:
-                # Text responses
+                # Text
                 for text in clean_answers[:5]:
                     text_clean = str(text).replace('\n', ' ').strip()[:140]
-                    if text_clean and text_clean not in ['Ja', 'Nein', 'x', '-', '']:
+                    if text_clean and text_clean not in ['Ja', 'Nein', 'x', '', '-']:
                         story.append(Paragraph(f"• {text_clean}", text_style))
-                story.append(Spacer(1, 0.15*cm))
-        
-        # Case 4: Text/comment answers
-        else:
-            text_answers = [a for a in clean_answers if a and a.strip() and a.strip() not in ['Ja', 'Nein', 'x', '', '-']]
-            if text_answers:
-                for text in text_answers[:5]:
-                    text_clean = str(text).replace('\n', ' ').strip()[:140]
-                    if text_clean:
-                        story.append(Paragraph(f"• {text_clean}", text_style))
+            
             story.append(Spacer(1, 0.15*cm))
+        
+        processed.add(question)
     
     try:
         doc.build(story)
@@ -191,7 +193,6 @@ def create_pdf(course_name, leader_name, responses_by_question):
         print(f"Error: {e}")
         return None
 
-# Parse CSV
 csv_file = "/root/.claude/uploads/6ffeaf5f-3332-5ad0-9338-47f78b6cac3f/55fd52ea-UmfrageOnline-Beantwortungen-1908032-2026-10-18-2026-10-24.csv"
 
 responses_by_course = defaultdict(lambda: defaultdict(list))
@@ -213,47 +214,22 @@ with open(csv_file, 'r', encoding='utf-8') as f:
                 if value and value.strip():
                     responses_by_course[course_name][key].append(value)
 
-with open('/tmp/kw43_mapping.json', 'r', encoding='utf-8') as f:
-    mapping = json.load(f)
-
-collector_to_leader = {}
-for course_name, course_data in mapping['confirmed'].items():
-    collector_name = course_data.get('collector_name', '')
-    leader = course_data.get('leader', '')
-    if collector_name:
-        collector_to_leader[collector_name] = leader
-        collector_to_leader[collector_name.strip()] = leader
-        collector_to_leader[collector_name.lower().strip()] = leader
-
 os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
 
-print(f"\n{'='*80}")
-print(f"KW{WEEK_NUM} - FINAL PDF GENERATION")
+print(f"\nKW{WEEK_NUM} - MAPPED PDF GENERATION")
 print(f"{'='*80}\n")
 
 generated = 0
-total_responses = 0
-
 for course_name in sorted(responses_by_course.keys()):
     responses = responses_by_course[course_name]
     response_count = len(next(iter(responses.values()))) if responses else 0
     
-    leader_name = 'Unknown'
-    for lookup_key in [course_name, course_name.strip(), course_name.lower().strip()]:
-        if lookup_key in collector_to_leader:
-            leader_name = collector_to_leader[lookup_key]
-            break
-    
     if response_count > 0:
-        pdf_path = create_pdf(course_name, leader_name, responses)
+        pdf_path = create_pdf(course_name, responses)
         if pdf_path:
             print(f"✓ {course_name:<50} ({response_count})")
             generated += 1
-            total_responses += response_count
-        else:
-            print(f"✗ {course_name:<50} (Failed)")
 
-print(f"\n{'='*80}")
-print(f"Generated: {generated} PDFs | Total: {total_responses} responses")
+print(f"\nGenerated: {generated} PDFs")
 print(f"{'='*80}\n")
 
