@@ -109,10 +109,15 @@ def draw_bar_chart(ratings, filename):
     plt.close()
     return filename
 
-def create_pdf(course_title, collector_id, responses):
+def create_pdf(course_title, leader, collector_id, responses):
     if not responses:
         return None
-    filename = f"/tmp/kw43_pdfs_api/{umlaut_slug(course_title)}_KW{WEEK_NUM}.pdf"
+    leader_slug = leader.split('(')[0].strip() if '(' in leader else leader.strip()
+    if ' ' in leader_slug:
+        parts = leader_slug.split()
+        if len(parts) >= 2:
+            leader_slug = f"{parts[-1]}-{parts[0]}"
+    filename = f"/tmp/kw43_pdfs_api/{leader_slug}_KW{WEEK_NUM}_{umlaut_slug(course_title)}.pdf"
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     doc = SimpleDocTemplate(filename, pagesize=A4, rightMargin=1*cm, leftMargin=1*cm,
                            topMargin=1*cm, bottomMargin=1*cm)
@@ -167,13 +172,14 @@ failed = 0
 
 for i, (course_title, info) in enumerate(mapping['confirmed'].items(), 1):
     collector_id = info['collector_id']
+    leader = info['leader']
     print(f"{i:2d}. {course_title[:40]:40s}", end=' ', flush=True)
     responses = fetch_responses(collector_id)
     if not responses:
         print("❌ No responses")
         failed += 1
         continue
-    pdf_file = create_pdf(course_title, collector_id, responses)
+    pdf_file = create_pdf(course_title, leader, collector_id, responses)
     if pdf_file:
         print(f"✓ ({len(responses)} responses)")
         generated += 1
