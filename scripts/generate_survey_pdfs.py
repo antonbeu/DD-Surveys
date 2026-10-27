@@ -6,7 +6,7 @@ import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 from reportlab.lib.pagesizes import A4
-from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch, cm
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Image
 from reportlab.lib import colors
@@ -28,9 +28,6 @@ def umlaut_slug(text):
     return ''.join(c if c.isalnum() or c in ' -.' else '' for c in text).strip()
 
 def draw_bar_chart(values, filename):
-    if not values:
-        return None
-    
     counter = Counter(values)
     labels = [str(k) for k in sorted(counter.keys())]
     counts = [counter[k] for k in sorted(counter.keys())]
@@ -45,25 +42,22 @@ def draw_bar_chart(values, filename):
     ax.set_ylabel('Anzahl', fontsize=9)
     ax.set_ylim(0, max(counts) * 1.2)
     ax.grid(axis='y', alpha=0.3)
-    
     plt.tight_layout()
     plt.savefig(filename, dpi=150, bbox_inches='tight')
     plt.close()
 
 def create_pdf(course_name, responses_by_question):
-    if not responses_by_question:
-        return None
-    
     course_slug = umlaut_slug(course_name)
     filename = f"/tmp/kw43_pdfs/Kurs_KW{WEEK_NUM}_{course_slug}.pdf"
     
     doc = SimpleDocTemplate(filename, pagesize=A4, topMargin=1.2*cm, bottomMargin=1.2*cm, leftMargin=1.2*cm, rightMargin=1.2*cm)
     story = []
-    styles = getSampleStyleSheet()
     
-    title_style = ParagraphStyle('Title', parent=styles['Heading1'], fontSize=16, textColor=colors.HexColor('#1F4D7B'), spaceAfter=10, fontName='Helvetica-Bold')
-    question_style = ParagraphStyle('Question', parent=styles['Normal'], fontSize=10, textColor=colors.HexColor('#1F4D7B'), spaceAfter=4, spaceBefore=2, fontName='Helvetica-Bold')
-    text_style = ParagraphStyle('Text', parent=styles['Normal'], fontSize=8, spaceAfter=1, leading=9, leftIndent=10)
+    # STYLES - ohne Parent, um Vererbung zu vermeiden!
+    title_style = ParagraphStyle('Title', fontSize=16, textColor=colors.HexColor('#1F4D7B'), spaceAfter=10, fontName='Helvetica-Bold')
+    question_style = ParagraphStyle('Question', fontSize=10, textColor=colors.HexColor('#1F4D7B'), spaceAfter=4, spaceBefore=2, fontName='Helvetica-Bold')
+    # WICHTIG: Normal text - SCHWARZ, NICHT FETT, NICHT BLAU
+    normal_text_style = ParagraphStyle('NormalText', fontSize=8, textColor=colors.black, spaceAfter=1, leading=9, leftIndent=10, fontName='Helvetica')
     
     story.append(Paragraph(course_name, title_style))
     story.append(Spacer(1, 0.15*cm))
@@ -88,13 +82,13 @@ def create_pdf(course_name, responses_by_question):
                 story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
                 story.append(Spacer(1, 0.1*cm))
             
-            # Optionen als NORMALER TEXT, nicht als Überschrift!
+            # OPTIONEN mit NORMAL TEXT STYLE
             for option_col, parent in QUESTION_MAPPING.items():
                 if parent == question and option_col in responses_by_question:
                     option_answers = responses_by_question[option_col]
-                    clean_opt = [a for a in option_answers if a and a.strip() and a.strip() in ['x', 'Ja', 'Ja ']]
+                    clean_opt = [a for a in option_answers if a and a.strip() in ['x', 'Ja']]
                     if clean_opt:
-                        story.append(Paragraph(f"• {option_col.strip()}", text_style))  # text_style, nicht question_style!
+                        story.append(Paragraph(f"• {option_col.strip()}", normal_text_style))
                     processed.add(option_col)
             
             story.append(Spacer(1, 0.15*cm))
@@ -103,7 +97,6 @@ def create_pdf(course_name, responses_by_question):
             processed.add(question)
         
         else:
-            # Normale Fragen
             story.append(Paragraph(question, question_style))
             
             numeric = []
@@ -125,17 +118,13 @@ def create_pdf(course_name, responses_by_question):
                 for text in clean_answers[:5]:
                     text_clean = str(text).replace('\n', ' ').strip()[:140]
                     if text_clean and text_clean not in ['Ja', 'Nein', 'x', '', '-']:
-                        story.append(Paragraph(f"• {text_clean}", text_style))
+                        story.append(Paragraph(f"• {text_clean}", normal_text_style))
             
             story.append(Spacer(1, 0.15*cm))
         
         processed.add(question)
     
-    try:
-        doc.build(story)
-        return filename
-    except:
-        return None
+    doc.build(story)
 
 csv_file = "/root/.claude/uploads/6ffeaf5f-3332-5ad0-9338-47f78b6cac3f/55fd52ea-UmfrageOnline-Beantwortungen-1908032-2026-10-18-2026-10-24.csv"
 
@@ -144,27 +133,21 @@ responses_by_course = defaultdict(lambda: defaultdict(list))
 with open(csv_file, 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f, delimiter=';')
     for row in reader:
-        if not row.get('Collector'):
+        if not row.get('Collector') or 'nicht abgeschlossen' in row.get('Status', '').lower():
             continue
         
         course_name = row['Collector']
-        if 'nicht abgeschlossen' in row.get('Status', '').lower():
-            continue
-        
         for key, value in row.items():
-            if key not in ['ID', 'Gestartet am', 'Zuletzt aktualisiert am', 'Status', 'Collector', 'Sprache', 'IP-Adresse', 'Gerät']:
-                if value and value.strip():
-                    responses_by_course[course_name][key].append(value)
+            if key not in ['ID', 'Gestartet am', 'Zuletzt aktualisiert am', 'Status', 'Collector', 'Sprache', 'IP-Adresse', 'Gerät'] and value and value.strip():
+                responses_by_course[course_name][key].append(value)
 
 os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
 
-print(f"\nKW{WEEK_NUM} - CORRECTED\n")
-generated = 0
+print(f"\nFINAL FIX - Normal Text (schwarze, nicht fette Bullet Points)\n")
 for course in sorted(responses_by_course.keys()):
     if len(next(iter(responses_by_course[course].values()))) > 0:
-        if create_pdf(course, responses_by_course[course]):
-            print(f"✓ {course}")
-            generated += 1
+        create_pdf(course, responses_by_course[course])
+        print(f"✓ {course}")
 
-print(f"\nGenerated: {generated}\n")
+print()
 
