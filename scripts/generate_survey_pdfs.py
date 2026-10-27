@@ -13,15 +13,6 @@ from reportlab.lib import colors
 
 WEEK_NUM = "43"
 
-# EXACT column names from CSV (mit \xa0 am Ende wo nötig!)
-QUESTION_MAPPING = {
-    'In einem Selbstlernkurs': 'Möchtest du das Thema vertiefen?',
-    'In einem mehrwöchigen Live-Projekt mit einer Dozentin / einem Dozenten': 'Möchtest du das Thema vertiefen?',
-    'In einem Learning Club, der sich mit ähnlichen Themen beschäftigt': 'Möchtest du das Thema vertiefen?',
-    'In einem Selbstlernprojekt, das du jederzeit starten kannst\xa0': 'Möchtest du das Thema vertiefen?',  # \xa0 = Non-Breaking-Space!
-    'Andere': 'Möchtest du das Thema vertiefen?',
-}
-
 def umlaut_slug(text):
     replacements = {'ä': 'ae', 'ö': 'oe', 'ü': 'ue', 'Ä': 'Ae', 'Ö': 'Oe', 'Ü': 'Ue', 'ß': 'ss'}
     for k, v in replacements.items():
@@ -47,7 +38,12 @@ def draw_bar_chart(values, filename):
     plt.savefig(filename, dpi=150, bbox_inches='tight')
     plt.close()
 
-def create_pdf(course_name, responses_by_question):
+def is_option_column(col_name):
+    """Spalten die mit 'In einem', 'Mit ' anfangen oder 'Andere' sind = Optionen"""
+    stripped = col_name.strip()
+    return stripped.startswith('In einem') or stripped.startswith('Mit ') or stripped == 'Andere'
+
+def create_pdf(course_name, data_row, all_columns):
     course_slug = umlaut_slug(course_name)
     filename = f"/tmp/kw43_pdfs/Kurs_KW{WEEK_NUM}_{course_slug}.pdf"
     
@@ -63,90 +59,67 @@ def create_pdf(course_name, responses_by_question):
     
     processed = set()
     
-    for question, answers in responses_by_question.items():
-        if question in processed:
+    for i, col in enumerate(all_columns):
+        if col in processed or is_option_column(col):
+            continue  # Überspringe Optionen jetzt noch
+        
+        answer = data_row.get(col, '').strip()
+        if not answer:
             continue
         
-        clean_answers = [a for a in answers if a and a.strip()]
-        if not clean_answers:
-            continue
+        story.append(Paragraph(col, question_style))
         
-        if question == 'Möchtest du das Thema vertiefen?':
-            story.append(Paragraph(question, question_style))
+        # Ja/Nein Frage?
+        if answer in ['Ja', 'Nein']:
+            # Schaue nach folgenden Optionen
+            ja_nein_counter = Counter()
+            for j in range(i + 1, len(all_columns)):
+                next_col = all_columns[j]
+                if is_option_column(next_col):
+                    next_val = data_row.get(next_col, '').strip()
+                    if next_val in ['x', 'Ja']:
+                        ja_nein_counter[next_col] += 1
+                    processed.add(next_col)
+                else:
+                    break  # Stoppe bei nächster Nicht-Option
             
-            main_answers = [a for a in clean_answers if a.strip() in ['Ja', 'Nein']]
-            if main_answers:
-                chart_file = f"/tmp/chart_{hash(question)}.png"
-                draw_bar_chart(main_answers, chart_file)
-                story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-                story.append(Spacer(1, 0.1*cm))
-            
-            for option_col, parent in QUESTION_MAPPING.items():
-                if parent == question and option_col in responses_by_question:
-                    option_answers = responses_by_question[option_col]
-                    clean_opt = [a for a in option_answers if a and a.strip() in ['x', 'Ja']]
-                    if clean_opt:
-                        # Bullet point mit normalem schwarzem Text
-                        story.append(Paragraph(f"• {option_col.strip()}", normal_text_style))
-                    processed.add(option_col)
-            
-            story.append(Spacer(1, 0.15*cm))
-        
-        elif question in QUESTION_MAPPING:
-            processed.add(question)
-        
+            # Zeige Ja/Nein Optionen als Bullet Points
+            if ja_nein_counter:
+                for opt, count in ja_nein_counter.most_common():
+                    opt_clean = opt.strip()
+                    story.append(Paragraph(f"• {opt_clean}: {count}x", normal_text_style))
+            story.append(Spacer(1, 0.1*cm))
         else:
-            story.append(Paragraph(question, question_style))
-            
-            numeric = []
-            for ans in clean_answers:
-                try:
-                    numeric.append(int(ans))
-                except:
-                    pass
-            
-            if numeric and len(numeric) == len(clean_answers):
-                chart_file = f"/tmp/chart_{hash(question)}.png"
-                draw_bar_chart(numeric, chart_file)
-                story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-            elif all(a.strip() in ['Ja', 'Nein'] for a in clean_answers):
-                chart_file = f"/tmp/chart_{hash(question)}.png"
-                draw_bar_chart(clean_answers, chart_file)
-                story.append(Image(chart_file, width=4.8*inch, height=1.9*inch))
-            else:
-                for text in clean_answers[:5]:
-                    text_clean = str(text).replace('\n', ' ').strip()[:140]
-                    if text_clean and text_clean not in ['Ja', 'Nein', 'x', '', '-']:
-                        story.append(Paragraph(f"• {text_clean}", normal_text_style))
-            
-            story.append(Spacer(1, 0.15*cm))
+            # Text Antwort
+            text_clean = answer.replace('\n', ' ').strip()[:140]
+            if text_clean and text_clean not in ['-', '']:
+                story.append(Paragraph(f"• {text_clean}", normal_text_style))
+            story.append(Spacer(1, 0.1*cm))
         
-        processed.add(question)
+        processed.add(col)
     
     doc.build(story)
 
 csv_file = "/root/.claude/uploads/6ffeaf5f-3332-5ad0-9338-47f78b6cac3f/55fd52ea-UmfrageOnline-Beantwortungen-1908032-2026-10-18-2026-10-24.csv"
 
-responses_by_course = defaultdict(lambda: defaultdict(list))
+os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
 
 with open(csv_file, 'r', encoding='utf-8') as f:
     reader = csv.DictReader(f, delimiter=';')
+    all_columns = [c for c in reader.fieldnames if c not in ['ID', 'Gestartet am', 'Zuletzt aktualisiert am', 'Status', 'Collector', 'Sprache', 'IP-Adresse', 'Gerät']]
+    f.seek(0)
+    reader = csv.DictReader(f, delimiter=';')
+    
+    courses_done = set()
     for row in reader:
         if not row.get('Collector') or 'nicht abgeschlossen' in row.get('Status', '').lower():
             continue
         
         course_name = row['Collector']
-        for key, value in row.items():
-            if key not in ['ID', 'Gestartet am', 'Zuletzt aktualisiert am', 'Status', 'Collector', 'Sprache', 'IP-Adresse', 'Gerät'] and value and value.strip():
-                responses_by_course[course_name][key].append(value)
+        if course_name not in courses_done:
+            create_pdf(course_name, row, all_columns)
+            courses_done.add(course_name)
+            print(f"✓ {course_name}")
 
-os.makedirs('/tmp/kw43_pdfs', exist_ok=True)
-
-print(f"\nFINAL - Mit exakten CSV-Spaltennamen\n")
-for course in sorted(responses_by_course.keys()):
-    if len(next(iter(responses_by_course[course].values()))) > 0:
-        create_pdf(course, responses_by_course[course])
-        print(f"✓ {course}")
-
-print()
+print(f"\n{len(courses_done)} PDFs generated")
 
